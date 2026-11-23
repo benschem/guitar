@@ -1,6 +1,6 @@
 # Plan: guitar practice webapp v1
 
-Status: 0/11 steps done.
+Status: 2/11 steps done.
 
 The spec is `HANDOVER.md`: screens, routes, state, the out-of-scope list and the final "Done when" checks. This file holds the decisions made on top of it and the build steps.
 
@@ -25,7 +25,7 @@ The source text is `~/Downloads/guitar-skill-tree.md`. It stays out of the repo:
 
 ### Content object
 
-`CONTENT` sits at the top of the script. Text is copied verbatim from the markdown, and markdown syntax becomes structure.
+`CONTENT` sits at the top of the script. Text is copied from the markdown, and markdown syntax becomes structure. The wording differs where prose referred to a level by label (see Mentions), in two trimmed sentences (How to use's "Repeat a level" bullet and R4's intro), and in the Toolkit, which leaves out the "Your last two lessons" bullet.
 
 ```js
 const CONTENT = {
@@ -41,7 +41,6 @@ const CONTENT = {
   streams: [
     {
       id: 'clean-hands',
-      prefix: 'C',
       name: 'Clean Hands',
       intro: [/* blocks */],
       levels: [
@@ -62,22 +61,21 @@ const CONTENT = {
 };
 ```
 
-- **Blocks** are `{ type: 'heading', text }`, `{ type: 'p', text }`, `{ type: 'list', ordered, items: [{ label, text }] }` and `{ type: 'table', head, rows }`. A list item's `label` holds its bold lead-in (`**5th:**`) when it has one.
+- **Blocks** are `{ type: 'heading', text }`, `{ type: 'p', text }`, `{ type: 'list', ordered, items: [{ label, text }] }` and `{ type: 'table', head, rows }`. A list item's `label` holds its bold lead-in (`**5th:**`) when it has one. A colon just after the bold moves inside it (the first of the three rules), and a bullet with two bold lead-ins becomes two items (F3's Major 3rd and Minor 3rd).
 - **Order** within a block array follows the markdown. H1 needs this: paragraph, table, paragraph.
 - **`after`** holds text that follows the sessions, like C1's "Tips:" paragraph. It shows under both Quick and Long.
 - **`needs`** is pulled out of the text as slugs. "Needs H1." is removed from L5's paragraph and shown as a tag, and the rest of the paragraph stays as written.
 
-### Level slugs, labels and mentions
+### Level slugs and mentions
 
 - **Slug** is a level's permanent ID. Ticks, routes (`#/level/muting`) and `needs` all use it.
-- **Label** ("C3") is worked out from the stream's `prefix` and the level's position in `levels`. Inserting, removing or moving a level renumbers the labels, and ticks stay with their levels.
-- **Mentions:** any text field can contain `[[slug]]`, which renders as that level's current label, linked to the level. Every typed label in the markdown's prose becomes a mention, so the rendered wording is unchanged:
-  - H3 Long: "the borrowed ones from H2"
-  - H4 Long: "take any H2 progression"
-  - Lead and Improv intro: "Later (L6)"
-  - Toolkit, Tone: "(C1, C2)" and "(C3, R3)"
-  - Toolkit, Your last two lessons: "(C2, C3)" and "(L2)"
-- **Needs tags** use the same rendering: "Needs" plus the current label, linked.
+- **No labels:** levels show only their titles. The markdown's labels ("C3") were for finding a level by scrolling, and links do that job here.
+- **Mentions:** any text field can contain `[[slug]]`, which renders as that level's current title, linked to the level. The markdown's prose references by label were reworded around the title:
+  - H3 Long: "try the borrowed ones (bVII, bVI, iv) from [[progressions]]"
+  - H4 Long: "take any progression from [[progressions]]"
+  - Lead and Improv intro: "Later, in [[playing-the-changes]], you add them back on purpose."
+  - Toolkit, Tone: the references are dropped, since the bullet already names the skills.
+- **Needs tags** use the same rendering: "Needs" plus the level's title, linked, one tag per entry.
 - **Rendering** splits text on the mention pattern and builds text nodes and links, with no `innerHTML`. An unknown slug renders as its raw `[[slug]]`, so a typo is visible.
 - **Slugs:**
   - Clean Hands: `open-chords`, `barre-chords`, `muting`, `sus-and-triads`
@@ -127,8 +125,8 @@ const CONTENT = {
 
 ## Gotchas
 
-- **Slugs never change.** Renaming a slug orphans its tick. Titles, labels and order can change freely.
-- **Mention, don't type, a label.** Prose that refers to a level must use `[[slug]]`. A typed "C3" goes stale the next time levels move.
+- **Slugs never change.** Renaming a slug orphans its tick. Titles and order can change freely.
+- **Mention, don't type, a title.** Prose that refers to a level uses `[[slug]]`, so it follows the title when that changes.
 - **Keep the password generated.** A memorable one would need rate limiting on `/api/unlock`, which v1 doesn't have.
 - **Opening the file directly:** `public/index.html` opened from disk has no API, so it shows cached ticks and stays locked. Run `pnpm exec wrangler dev` instead.
 - **Signing out:** there's no lock button. Clearing a device's site data signs that device out, and changing `OWNER_PASSWORD` signs out all of them.
@@ -148,9 +146,9 @@ Each step is one commit, except step 11, which deploys and has nothing to commit
 
 ### 2. Content and Home
 
-- The full `CONTENT` (23 levels with the slugs above, mentions converted, both routines, How to use, Toolkit), labels worked out from position, and the Home screen reading ticks from the localStorage cache.
+- The full `CONTENT` (23 levels with the slugs above, mentions converted, both routines, How to use, Toolkit) and the Home screen reading ticks from the localStorage cache.
 - Checks:
-  - A throwaway script in the scratchpad confirms every sentence of the markdown appears in `CONTENT` once mentions are expanded to their labels, and that every mention and `needs` entry names a real slug.
+  - A throwaway script in the scratchpad rebuilds the markdown from `CONTENT`, and a diff against the source shows only the changes listed under Content object and Mentions. Every mention and `needs` entry names a real slug.
   - Each Home card shows 0 / N and the stream's first level.
   - Home at 390px in light and dark, screenshotted.
 - Commit: `feat: skill tree content and home screen`
@@ -159,7 +157,7 @@ Each step is one commit, except step 11, which deploys and has nothing to commit
 
 - Block and mention rendering, and the Stream screen: intro, level list with ticks from the cache, the current level highlighted, and Needs tags.
 - Checks:
-  - The Lead and Improv intro's mention and each Needs tag show the right label and open the level they name.
+  - The Lead and Improv intro's mention and each Needs tag show the right title and open the level they name.
   - A tick added to the cache by hand shows in the list and moves the highlight.
   - Stream at 390px in light and dark, screenshotted.
 - Commit: `feat: stream screen`
@@ -170,7 +168,7 @@ Each step is one commit, except step 11, which deploys and has nothing to commit
 - Checks:
   - Ticks survive a reload, and Home and Stream progress update to match.
   - Quick/Long holds across screens and resets to Quick on reload.
-  - Inserting a dummy level mid-stream renumbers labels, mentions and Needs tags, and existing ticks stay on their levels. The dummy is removed afterwards.
+  - Inserting a dummy level mid-stream leaves existing ticks on their levels, and renaming a title updates its mentions and Needs tags. Both are undone afterwards.
   - The back button goes Level → Stream → Home.
   - The H1 and H2 tables fit at 390px without page scroll.
   - Level in light and dark, screenshotted.
@@ -189,7 +187,6 @@ Each step is one commit, except step 11, which deploys and has nothing to commit
 
 - `#/how-to-use` and `#/toolkit`, linked from the bottom of Home.
 - Checks:
-  - The Toolkit's mentions open their levels.
   - The handover's full "Done when" list passes, except the password check.
   - Both pages in light and dark, screenshotted.
 - Commit: `feat: how to use and toolkit pages`

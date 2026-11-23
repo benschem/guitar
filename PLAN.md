@@ -1,6 +1,6 @@
 # Plan: guitar practice webapp v1
 
-Status: 3/11 steps done.
+Status: 4/12 steps done.
 
 The spec is `HANDOVER.md`: screens, routes, state, the out-of-scope list and the final "Done when" checks. This file holds the decisions made on top of it and the build steps.
 
@@ -18,10 +18,10 @@ The source text is `~/Downloads/guitar-skill-tree.md`. It stays out of the repo:
 
 ### Borrowed from the gym app
 
-- **Design tokens and class names** from `../gym/src/styles/global.css`, with abbreviated names spelled out (`--foreground`, not `--fg`): surfaces, text tiers, `--space-*`, `--radius-*`, `.button`, `.linkish`, the `.label-section` / `.label` / `.meta-line` hierarchy, and the back-link convention (top-left `← Back` to the parent screen). Gym's dark values become the dark theme, and a matching light set is added. Body text goes from 16px to 17px. Gym's tap sizes (64px buttons, 44px links) already meet the handover's 44px minimum.
+- **Design tokens and class names** from `../gym/src/styles/global.css`, with abbreviated names spelled out (`--foreground`, not `--fg`): surfaces, text tiers, `--space-*`, `--radius-*`, `.button`, `.linkish`, and the `.label-section` / `.label` / `.meta-line` hierarchy. Gym's dark values become the dark theme, and a matching light set is added. Body text goes from 16px to 17px. Gym's tap sizes (64px buttons, 44px links) already meet the handover's 44px minimum.
 - **Space Grotesk**, embedded from `../gym/src/fonts/SpaceGrotesk-Variable.woff2` as a base64 `@font-face` (22K file, about 30K encoded), so the page loads no fonts from the network.
 - **Storage pattern** from `../gym/src/lib/storage.ts`, for the ticks cache: all access goes through a few named functions, reads validate and fall back to defaults, and writes sit in try/catch.
-- Not borrowed: `user-scalable=no` (pinch-zoom helps on a page you read), the secret path token (the password protects writes, and the page is meant to be shown to people), Svelte, the PWA, and the gym worker's Hono, Zod, basic auth, CORS setup and offline sync queue. The page and API share one origin, so CORS doesn't come up.
+- Not borrowed: the top-left `← Back` link (see Breadcrumbs), `user-scalable=no` (pinch-zoom helps on a page you read), the secret path token (the password protects writes, and the page is meant to be shown to people), Svelte, the PWA, and the gym worker's Hono, Zod, basic auth, CORS setup and offline sync queue. The page and API share one origin, so CORS doesn't come up.
 
 ### Content object
 
@@ -110,6 +110,7 @@ const CONTENT = {
 
 ### Behaviour the handover leaves open
 
+- **Breadcrumbs:** every screen but Home starts with links to the screens above it: "Home › Lead and Improv" on a level, "Home" elsewhere. The current screen is left out, since its heading names it. A level's trail shows its own stream even when it was opened from a routine or another stream's Needs tag, and the phone's back button covers where you came from. Each crumb names where it goes, which a `← Back` link to the parent doesn't.
 - **Current level** is the lowest unticked level, ignoring "Needs". Needs are a visible tag, not a lock. A stream with every level ticked shows "Complete" on its Home card.
 - **Routine links:** every routine step tied to a stream links to that stream's current level, following the markdown's "Each slot uses your current level in that stream". "Jam" maps to Lead and Improv. The Long 45 warm-up has no link.
 - **Prev / next** stays within the stream. On the first or last level, that slot links back to the stream instead.
@@ -133,7 +134,7 @@ const CONTENT = {
 
 ## Steps
 
-Each step is one commit, except step 11, which deploys and has nothing to commit.
+Each step is one commit, except step 12, which deploys and has nothing to commit.
 
 ### 1. App shell
 
@@ -162,9 +163,19 @@ Each step is one commit, except step 11, which deploys and has nothing to commit
   - Stream at 390px in light and dark, screenshotted.
 - Commit: `feat: stream screen`
 
-### 4. Level screen
+### 4. Breadcrumbs
 
-- The Level screen as specified in `HANDOVER.md`: intro blocks and tables, the Quick/Long toggle, `after` text, "Done when" with the tick toggle, and prev / next. Until step 8, ticks save to the localStorage cache only, and the toggle is always enabled.
+- The trail described under Breadcrumbs, on every screen but Home, in place of the `← Back` links. The level and routine placeholders look up what they show, so a level's trail names its stream and an unknown slug or routine gets Not found.
+- Checks:
+  - Every route's trail names the right screens, and each crumb opens its screen.
+  - A level opened from another stream's Needs tag shows its own stream.
+  - Crumb links are 44px tall, and the separator is hidden from screen readers.
+  - A two-crumb trail in light and dark, screenshotted.
+- Commit: `feat: replace back links with breadcrumbs`
+
+### 5. Level screen
+
+- The Level screen as specified in `HANDOVER.md`: intro blocks and tables, the Quick/Long toggle, `after` text, "Done when" with the tick toggle, and prev / next. Until step 9, ticks save to the localStorage cache only, and the toggle is always enabled.
 - Checks:
   - Ticks survive a reload, and Home and Stream progress update to match.
   - Quick/Long holds across screens and resets to Quick on reload.
@@ -174,7 +185,7 @@ Each step is one commit, except step 11, which deploys and has nothing to commit
   - Level in light and dark, screenshotted.
 - Commit: `feat: level screen with quick/long toggle and ticks`
 
-### 5. Everything routines
+### 6. Everything routines
 
 - `#/everything/quick` and `#/everything/long`: numbered steps with minutes and stream, linking to each stream's current level.
 - Checks:
@@ -183,7 +194,7 @@ Each step is one commit, except step 11, which deploys and has nothing to commit
   - Both routines in light and dark, screenshotted.
 - Commit: `feat: everything routines`
 
-### 6. How to use and Toolkit
+### 7. How to use and Toolkit
 
 - `#/how-to-use` and `#/toolkit`, linked from the bottom of Home.
 - Checks:
@@ -191,19 +202,19 @@ Each step is one commit, except step 11, which deploys and has nothing to commit
   - Both pages in light and dark, screenshotted.
 - Commit: `feat: how to use and toolkit pages`
 
-### 7. Serve with wrangler
+### 8. Serve with wrangler
 
 - `package.json` and `pnpm-lock.yaml` with wrangler pinned, `wrangler.jsonc` serving `public/` as static assets with no Worker script yet, and `public/_headers` with the CSP and `X-Robots-Tag`. `.gitignore` covers `node_modules/` and `.wrangler/`.
 - Confirm where pnpm 11 reads the install-scripts allowlist.
 - Checks, under `pnpm exec wrangler dev`:
   - The page works as before.
-  - `curl -I` shows the CSP and `X-Robots-Tag`, and the console shows no CSP violations, with the font still loading. If `wrangler dev` doesn't apply `_headers`, these checks move to step 11.
+  - `curl -I` shows the CSP and `X-Robots-Tag`, and the console shows no CSP violations, with the font still loading. If `wrangler dev` doesn't apply `_headers`, these checks move to step 12.
 - Commit: `chore: serve with pinned wrangler and security headers`
 
-### 8. Ticks API
+### 9. Ticks API
 
 - `migrations/0001_create_ticks.sql`, `src/worker.js` with `GET`, `PUT` and `DELETE` on `/api/ticks`, the D1 binding in `wrangler.jsonc`, and the page loading from and writing to the API, reverting a failed tap with a message.
-- Writes are open to anyone until step 9. That's safe because nothing is deployed before step 11.
+- Writes are open to anyone until step 10. That's safe because nothing is deployed before step 12.
 - Create the D1 database (`pnpm exec wrangler d1 create guitar`) for its ID, and migrate the local copy (`pnpm exec wrangler d1 migrations apply guitar --local`).
 - Checks, under `pnpm exec wrangler dev`:
   - A tick shows up as a row in local D1 and still shows after clearing localStorage and reloading.
@@ -211,7 +222,7 @@ Each step is one commit, except step 11, which deploys and has nothing to commit
   - With the dev server stopped, a tap reverts and shows the message.
 - Commit: `feat: save ticks to d1`
 
-### 9. Password unlock
+### 10. Password unlock
 
 - `POST /api/unlock` and the owner cookie, the Origin check, 401s on writes without the cookie, `canEdit` in `GET /api/ticks`, the Unlock screen and its Home link, and greyed-out toggles while locked. `.dev.vars` holds a local `OWNER_PASSWORD`, and `.gitignore` covers it.
 - Checks, under `pnpm exec wrangler dev`:
@@ -220,13 +231,13 @@ Each step is one commit, except step 11, which deploys and has nothing to commit
   - A wrong password shows an error. The right one unlocks, and the cookie has `HttpOnly`, `Secure` and `SameSite=Strict`.
 - Commit: `feat: password unlock for changing ticks`
 
-### 10. README
+### 11. README
 
 - What it is, how to edit the text (`CONTENT` in `public/index.html`) and how to run it locally. `.gitignore` gains `DEPLOYMENT.md`.
 - Check: the README's local steps work from a fresh clone.
 - Commit: `docs: add readme`
 
-### 11. Deploy
+### 12. Deploy
 
 - Confirm the Cloudflare account has 2FA.
 - Generate the production password, different from the one in `.dev.vars` so the real one never sits in a file. Set it with `pnpm exec wrangler secret put OWNER_PASSWORD`, typed at the prompt, because piping it in with `echo` saves it in shell history.

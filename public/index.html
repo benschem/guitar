@@ -302,8 +302,7 @@
         pointer-events: none;
       }
 
-      /* Back affordance: top-left `← Back` in .linkish, returning to the
-         screen's parent. */
+      /* Quiet text link, with a 44px tap height. */
 
       .linkish {
         color: var(--muted);
@@ -321,6 +320,20 @@
         .linkish:hover {
           color: var(--foreground);
         }
+      }
+
+      /* ---- Breadcrumbs ---- */
+
+      .breadcrumbs ol,
+      .breadcrumbs li {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-1);
+      }
+
+      .breadcrumb-separator {
+        color: var(--dim);
       }
 
       /* ---- Home ---- */
@@ -1213,6 +1226,10 @@
         CONTENT.streams.flatMap((stream) => stream.levels.map((level) => [level.slug, level])),
       );
 
+      function streamOfLevel(slug) {
+        return CONTENT.streams.find((stream) => stream.levels.some((level) => level.slug === slug));
+      }
+
       // The lowest unticked level, or -1 when every level is ticked. Needs
       // are shown as tags but don't lock a level, so they don't count here.
       function currentLevelIndex(stream, tickedSlugs) {
@@ -1306,6 +1323,29 @@
         ]);
       }
 
+      // ---- Breadcrumbs ----
+      // Every screen but Home starts with links to the screens above it.
+      // The current screen is left out, since its heading names it.
+
+      const HOME_CRUMB = { label: 'Home', href: '#/' };
+
+      function breadcrumbs(crumbs) {
+        const items = crumbs.map((crumb, index) => {
+          const children = [
+            element('a', { className: 'linkish', href: crumb.href, textContent: crumb.label }),
+          ];
+          if (index > 0) {
+            children.unshift(
+              element('span', { className: 'breadcrumb-separator', ariaHidden: 'true', textContent: '›' }),
+            );
+          }
+          return element('li', {}, children);
+        });
+        return element('nav', { className: 'breadcrumbs', ariaLabel: 'Breadcrumb' }, [
+          element('ol', {}, items),
+        ]);
+      }
+
       // ---- Screens ----
       // Each returns { title, nodes }: the document title (null for Home) and
       // the nodes that fill <main>.
@@ -1371,7 +1411,7 @@
         return {
           title: stream.name,
           nodes: [
-            backLink('#/'),
+            breadcrumbs([HOME_CRUMB]),
             element('h1', { className: 'h1', textContent: stream.name }),
             element('div', { className: 'prose' }, renderBlocks(stream.intro)),
             element('section', { className: 'stack' }, [
@@ -1429,11 +1469,20 @@
       }
 
       function renderLevel(slug) {
-        return placeholderScreen(`Level: ${slug}`);
+        const level = LEVELS_BY_SLUG.get(slug);
+        if (!level) return renderNotFound();
+
+        const stream = streamOfLevel(slug);
+        return placeholderScreen(level.title, [
+          HOME_CRUMB,
+          { label: stream.name, href: `#/stream/${stream.id}` },
+        ]);
       }
 
       function renderRoutine(routineId) {
-        return placeholderScreen(`Everything: ${routineId}`);
+        const routine = CONTENT.routines.find((candidate) => candidate.id === routineId);
+        if (!routine) return renderNotFound();
+        return placeholderScreen(routine.title);
       }
 
       function renderPage(title) {
@@ -1448,23 +1497,18 @@
         return {
           title: 'Not found',
           nodes: [
+            breadcrumbs([HOME_CRUMB]),
             element('h1', { className: 'h1', textContent: 'Not found' }),
             element('p', { className: 'muted', textContent: 'There’s no screen at this address.' }),
-            element('a', { className: 'linkish', href: '#/', textContent: '← Home' }),
           ],
         };
       }
 
-      // Top-left link to the screen's parent.
-      function backLink(href) {
-        return element('a', { className: 'linkish', href, textContent: '← Back' });
-      }
-
-      function placeholderScreen(title) {
+      function placeholderScreen(title, parentCrumbs = [HOME_CRUMB]) {
         return {
           title,
           nodes: [
-            backLink('#/'),
+            breadcrumbs(parentCrumbs),
             element('h1', { className: 'h1', textContent: title }),
             element('p', { className: 'meta-line', textContent: 'Placeholder' }),
           ],

@@ -1,6 +1,6 @@
 # Plan: guitar practice webapp v1
 
-Status: 6/12 steps done.
+Status: 6/14 steps done.
 
 The spec is `HANDOVER.md`: screens, routes, state, the out-of-scope list and the final "Done when" checks. This file holds the decisions made on top of it and the build steps.
 
@@ -25,7 +25,14 @@ The source text is `~/Downloads/guitar-skill-tree.md`. It stays out of the repo:
 
 ### Content object
 
-`CONTENT` sits at the top of the script. Text is copied from the markdown, and markdown syntax becomes structure. The wording differs where prose referred to a level by label (see Mentions), in two trimmed sentences (How to use's "Repeat a level" bullet and R4's intro), and in the Toolkit, which leaves out the "Your last two lessons" bullet.
+`CONTENT` sits at the top of the script. Sessions and Done when are rewritten into lists (see Sessions and tests), which sets aside the handover's "keep my wording exactly" for them. Everything else is copied from the markdown, with markdown syntax turned into structure, and its wording differs only:
+
+- where prose referred to a level by label (see Mentions)
+- in two trimmed sentences: How to use's "Repeat a level" bullet and R4's intro
+- in How to use's two lines about passing "the test", which now say to tick each test
+- in the Toolkit, which leaves out the "Your last two lessons" bullet
+
+How to use's "Write your numbers" bullet stays, even though v1 has nowhere to write them. A way to record them in the app may come later.
 
 ```js
 const CONTENT = {
@@ -49,10 +56,10 @@ const CONTENT = {
           title: 'Open chord changes',
           needs: [],
           intro: [/* blocks */],
-          quick: '…',
-          long: '…',
-          after: [/* blocks */],
-          doneWhen: '…',
+          quick: { setup: '…', steps: ['…'] },
+          long: { setup: '…', steps: ['…'] },
+          tips: [/* blocks */],
+          doneWhen: [{ slug: 'sixty-a-minute', text: '…' }],
         },
       ],
     },
@@ -63,12 +70,23 @@ const CONTENT = {
 
 - **Blocks** are `{ type: 'heading', text }`, `{ type: 'p', text }`, `{ type: 'list', ordered, items: [{ label, text }] }` and `{ type: 'table', head, rows }`. A list item's `label` holds its bold lead-in (`**5th:**`) when it has one. A colon just after the bold moves inside it (the first of the three rules), and a bullet with two bold lead-ins becomes two items (F3's Major 3rd and Minor 3rd).
 - **Order** within a block array follows the markdown. H1 needs this: paragraph, table, paragraph.
-- **`after`** holds text that follows the sessions, like C1's "Tips:" paragraph. It shows under both Quick and Long.
 - **`needs`** is pulled out of the text as slugs. "Needs H1." is removed from L5's paragraph and shown as a tag, and the rest of the paragraph stays as written.
+
+### Sessions and tests
+
+A session is a short list of things to do, so it can be followed with the guitar in hand and then put down.
+
+- **Set up** lists gear and tone only: metronome, drum beat, backing track and key, looper, gain. Values that can change within a session, like BPM, stay in the step that uses them.
+- **Steps** are one action each. Each starts with a verb and carries its own numbers (chords, frets, bars). How to do a step goes in Tips. Steps aren't grouped under names and carry no minutes. Both were considered and turned down.
+- **Tips** are the technique cues taken out of the session text, plus what followed the sessions in the markdown, like C1's "Tips:" paragraph. They show under both Quick and Long.
+- **Long stands alone.** Where it repeats the Quick drill, it has its own copy of those steps, so a session never needs the other one's text.
+- **Done when** is split wherever "and" joins two tests, but not where it joins a list ("G, C, D, A and E"). On the Level screen, each test is its own tick toggle, labelled with its text.
+- **Test slugs** are unique within their level and permanent, like level slugs.
+- **Passed:** a level is passed when every one of its current tests is ticked. This is worked out from the test ticks, never stored.
 
 ### Level slugs and mentions
 
-- **Slug** is a level's permanent ID. Ticks, routes (`#/level/muting`) and `needs` all use it.
+- **Slug** is a level's permanent ID. Ticks (paired with a test's slug), routes (`#/level/muting`) and `needs` all use it.
 - **No labels:** levels show only their titles. The markdown's labels ("C3") were for finding a level by scrolling, and links do that job here.
 - **Mentions:** any text field can contain `[[slug]]`, which renders as that level's current title, linked to the level. The markdown's prose references by label were reworded around the title:
   - H3 Long: "try the borrowed ones (bVII, bVI, iv) from [[progressions]]"
@@ -90,12 +108,12 @@ const CONTENT = {
 - **Password:** one Worker secret, `OWNER_PASSWORD`, set with `pnpm exec wrangler secret put`. It isn't stored in D1, because a secret is encrypted, never appears in a database export, and needs no table or hashing code. It's generated (`openssl rand -base64 24`) and kept in a password manager, which makes guessing it hopeless without any rate limiting.
 - **Unlock screen:** an "Unlock" link at the bottom of Home, shown only while locked, opens `#/unlock`. It has one password field (`autocomplete="current-password"`, with a hidden fixed username so password managers save it) and a button. This is the app's only text input, and it's used once per device.
 - **Owner cookie:** `POST /api/unlock` checks the password with a constant-time compare, then sets `__Host-owner` with `HttpOnly; Secure; SameSite=Strict; Path=/` and a one-year `Max-Age`. Its value is an HMAC of a fixed string, keyed with the password, so the cookie doesn't contain the password and changing the secret signs out every device. A server-set cookie isn't affected by Safari's 7-day clearing of script-written storage.
-- **Data:** a D1 table, `ticks (level_slug TEXT PRIMARY KEY, ticked_at INTEGER NOT NULL)`, one row per ticked level. `ticked_at` isn't shown in v1, but it can't be filled in after the fact.
+- **Data:** a D1 table, `ticks (level_slug TEXT NOT NULL, test_slug TEXT NOT NULL, ticked_at INTEGER NOT NULL, PRIMARY KEY (level_slug, test_slug))`, one row per ticked test. A row existing means ticked, so unticking deletes it. `ticked_at` isn't shown in v1, but it can't be filled in after the fact.
 - **API:**
-  - `GET /api/ticks` returns `{ ticks: ["muting", "looper"], canEdit: true }`. `canEdit` is how the page learns it's unlocked, since its JS can't read an `HttpOnly` cookie.
-  - `PUT /api/ticks/:slug` ticks a level (`INSERT OR IGNORE`) and `DELETE /api/ticks/:slug` unticks it. Both return 204, or 401 without a valid cookie.
+  - `GET /api/ticks` returns `{ ticks: [{ level: "muting", test: "only-the-chord" }], canEdit: true }`. `canEdit` is how the page learns it's unlocked, since its JS can't read an `HttpOnly` cookie.
+  - `PUT /api/ticks/:level/:test` ticks a test (`INSERT OR IGNORE`) and `DELETE /api/ticks/:level/:test` unticks it. Both return 204, or 401 without a valid cookie. PUT is idempotent, so a retried tap does no harm.
   - `POST /api/unlock` returns 204 with the cookie, or 401.
-  - A slug that doesn't match `^[a-z0-9-]{1,40}$` gets a 404. Only the owner can write, so this is a sanity check rather than a defence. The page ignores slugs it doesn't know, such as a deleted level's leftover row.
+  - A level or test slug that doesn't match `^[a-z0-9-]{1,40}$` gets a 404. Only the owner can write, so this is a sanity check rather than a defence. The page ignores pairs it doesn't know, such as a deleted test's leftover row.
   - Every API response sets `X-Robots-Tag: noindex` itself, since `_headers` only covers static files.
 - **Page:** `guitar:ticks` in localStorage caches the last `GET /api/ticks` response, so screens draw instantly, and a fresh fetch on load replaces it. While locked, tick toggles show their state but are greyed out and inert. While unlocked, a tap updates the screen at once and calls the API. If the call fails, the tick reverts and a short message says it didn't save. There's no offline queue.
 - **Quick/Long** isn't stored. It's chosen per practice session: it defaults to Quick when the page loads and holds while moving between screens.
@@ -111,7 +129,8 @@ const CONTENT = {
 ### Behaviour the handover leaves open
 
 - **Breadcrumbs:** every screen but Home starts with links to the screens above it: "Home › Lead and Improv" on a level, "Home" elsewhere. The current screen is left out, since its heading names it. A level's trail shows its own stream even when it was opened from a routine or another stream's Needs tag, and the phone's back button covers where you came from. Each crumb names where it goes, which a `← Back` link to the parent doesn't.
-- **Current level** is the lowest unticked level, ignoring "Needs". Needs are a visible tag, not a lock. A stream with every level ticked shows "Complete" on its Home card.
+- **Current level** is the lowest level not yet passed, ignoring "Needs". Needs are a visible tag, not a lock. A stream with every level passed shows "Complete" on its Home card and in routine steps, which then link to the stream.
+- **Partly ticked levels** show their count ("1 / 2") on their Stream row. The row's tick mark fills in only once the level is passed.
 - **Routine links:** every routine step tied to a stream links to that stream's current level, following the markdown's "Each slot uses your current level in that stream". "Jam" maps to Lead and Improv. The Long 45 warm-up has no link.
 - **Prev / next** stays within the stream. On the first or last level, that slot links back to the stream instead.
 - **Home** has "How to use" and "Toolkit" links at the bottom, so each is one tap away, plus "Unlock" while locked.
@@ -126,7 +145,9 @@ const CONTENT = {
 
 ## Gotchas
 
-- **Slugs never change.** Renaming a slug orphans its tick. Titles and order can change freely.
+- **Slugs never change**, for levels or tests. Renaming one orphans its ticks. Titles, wording and order can change freely.
+- **Quick drills live in two places.** Where a Long repeats its Quick drill, it has its own copy, so editing one means checking the other.
+- **Adding a test un-passes its level** until the new test is ticked. Deleting a test leaves a row the page ignores, and can make the level count as passed.
 - **Mention, don't type, a title.** Prose that refers to a level uses `[[slug]]`, so it follows the title when that changes.
 - **Keep the password generated.** A memorable one would need rate limiting on `/api/unlock`, which v1 doesn't have.
 - **Opening the file directly:** `public/index.html` opened from disk has no API, so it shows cached ticks and stays locked. Run `pnpm exec wrangler dev` instead.
@@ -134,7 +155,7 @@ const CONTENT = {
 
 ## Steps
 
-Each step is one commit, except step 12, which deploys and has nothing to commit.
+Each step is one commit, except step 14, which deploys and has nothing to commit.
 
 ### 1. App shell
 
@@ -175,7 +196,7 @@ Each step is one commit, except step 12, which deploys and has nothing to commit
 
 ### 5. Level screen
 
-- The Level screen as specified in `HANDOVER.md`: intro blocks and tables, the Quick/Long toggle, `after` text, "Done when" with the tick toggle, and prev / next. Until step 9, ticks save to the localStorage cache only, and the toggle is always enabled.
+- The Level screen as specified in `HANDOVER.md`: intro blocks and tables, the Quick/Long toggle, `after` text, "Done when" with the tick toggle, and prev / next. Until step 11, ticks save to the localStorage cache only, and the toggle is always enabled.
 - Checks:
   - Ticks survive a reload, and Home and Stream progress update to match.
   - Quick/Long holds across screens and resets to Quick on reload.
@@ -194,7 +215,28 @@ Each step is one commit, except step 12, which deploys and has nothing to commit
   - Both routines in light and dark, screenshotted.
 - Commit: `feat: everything routines`
 
-### 7. How to use and Toolkit
+### 7. Session structure
+
+- Every level in the shape under Content object and Sessions and tests, and the Level screen drawing Set up, numbered steps, Tips and the Done when tests. The level keeps its one tick until step 8.
+- Clean Hands is written up as plain text for review first, to settle the style before the other four streams. Nothing is committed at that stop.
+- Checks:
+  - A fresh agent compares each level's old and new text, and finds nothing dropped or changed in meaning. It's given only those two texts, nothing about how the conversion was done. The old text is `CONTENT` as committed before this step, not the markdown, which would show the mention rewrites as differences.
+  - Every Long reads on its own, without the Quick text.
+  - Every test slug is unique within its level, and every mention names a real slug.
+  - Level in light and dark, screenshotted.
+- Commit: `feat: restructure sessions into set up, steps and tips`
+
+### 8. Tick per test
+
+- The ticks cache holds level and test pairs, and passed, the current level, Home progress and the routine links work from them. The Done when tests become tick toggles, a partly ticked level shows its count on the Stream screen, and How to use's lines about passing the test are reworded (see Content object).
+- Checks:
+  - Ticking every test of a level passes it, and Home, Stream and the routine links move on. Unticking one test un-passes it.
+  - A partly ticked level shows "1 / 2" on its Stream row, with an empty tick mark.
+  - A cache left in the old format (level slugs only) reads as nothing ticked, without breaking the page.
+  - Level and Stream in light and dark, screenshotted.
+- Commit: `feat: tick each done-when test`
+
+### 9. How to use and Toolkit
 
 - `#/how-to-use` and `#/toolkit`, linked from the bottom of Home.
 - Checks:
@@ -202,19 +244,19 @@ Each step is one commit, except step 12, which deploys and has nothing to commit
   - Both pages in light and dark, screenshotted.
 - Commit: `feat: how to use and toolkit pages`
 
-### 8. Serve with wrangler
+### 10. Serve with wrangler
 
 - `package.json` and `pnpm-lock.yaml` with wrangler pinned, `wrangler.jsonc` serving `public/` as static assets with no Worker script yet, and `public/_headers` with the CSP and `X-Robots-Tag`. `.gitignore` covers `node_modules/` and `.wrangler/`.
 - Confirm where pnpm 11 reads the install-scripts allowlist.
 - Checks, under `pnpm exec wrangler dev`:
   - The page works as before.
-  - `curl -I` shows the CSP and `X-Robots-Tag`, and the console shows no CSP violations, with the font still loading. If `wrangler dev` doesn't apply `_headers`, these checks move to step 12.
+  - `curl -I` shows the CSP and `X-Robots-Tag`, and the console shows no CSP violations, with the font still loading. If `wrangler dev` doesn't apply `_headers`, these checks move to step 14.
 - Commit: `chore: serve with pinned wrangler and security headers`
 
-### 9. Ticks API
+### 11. Ticks API
 
 - `migrations/0001_create_ticks.sql`, `src/worker.js` with `GET`, `PUT` and `DELETE` on `/api/ticks`, the D1 binding in `wrangler.jsonc`, and the page loading from and writing to the API, reverting a failed tap with a message.
-- Writes are open to anyone until step 10. That's safe because nothing is deployed before step 12.
+- Writes are open to anyone until step 12. That's safe because nothing is deployed before step 14.
 - Create the D1 database (`pnpm exec wrangler d1 create guitar`) for its ID, and migrate the local copy (`pnpm exec wrangler d1 migrations apply guitar --local`).
 - Checks, under `pnpm exec wrangler dev`:
   - A tick shows up as a row in local D1 and still shows after clearing localStorage and reloading.
@@ -222,7 +264,7 @@ Each step is one commit, except step 12, which deploys and has nothing to commit
   - With the dev server stopped, a tap reverts and shows the message.
 - Commit: `feat: save ticks to d1`
 
-### 10. Password unlock
+### 12. Password unlock
 
 - `POST /api/unlock` and the owner cookie, the Origin check, 401s on writes without the cookie, `canEdit` in `GET /api/ticks`, the Unlock screen and its Home link, and greyed-out toggles while locked. `.dev.vars` holds a local `OWNER_PASSWORD`, and `.gitignore` covers it.
 - Checks, under `pnpm exec wrangler dev`:
@@ -231,13 +273,13 @@ Each step is one commit, except step 12, which deploys and has nothing to commit
   - A wrong password shows an error. The right one unlocks, and the cookie has `HttpOnly`, `Secure` and `SameSite=Strict`.
 - Commit: `feat: password unlock for changing ticks`
 
-### 11. README
+### 13. README
 
 - What it is, how to edit the text (`CONTENT` in `public/index.html`) and how to run it locally. `.gitignore` gains `DEPLOYMENT.md`.
 - Check: the README's local steps work from a fresh clone.
 - Commit: `docs: add readme`
 
-### 12. Deploy
+### 14. Deploy
 
 - Confirm the Cloudflare account has 2FA.
 - Generate the production password, different from the one in `.dev.vars` so the real one never sits in a file. Set it with `pnpm exec wrangler secret put OWNER_PASSWORD`, typed at the prompt, because piping it in with `echo` saves it in shell history.

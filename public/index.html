@@ -387,6 +387,16 @@
         gap: var(--space-2);
       }
 
+      /* Pushed to the bottom of the screen when Home is shorter than it. */
+      .home-links {
+        margin-top: auto;
+      }
+      .home-links ul {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+      }
+
       /* A "2 / 5" count at the right of a stream card or level row. */
       .progress-count {
         margin-left: auto;
@@ -2162,6 +2172,16 @@
                 ),
               ),
             ]),
+            element('nav', { className: 'home-links', ariaLabel: 'More' }, [
+              element('ul', {}, [
+                element('li', {}, [
+                  element('a', { className: 'linkish', href: '#/how-to-use', textContent: 'How to use' }),
+                ]),
+                element('li', {}, [
+                  element('a', { className: 'linkish', href: '#/toolkit', textContent: 'Toolkit' }),
+                ]),
+              ]),
+            ]),
           ],
         };
       }
@@ -2481,8 +2501,16 @@
         ]);
       }
 
-      function renderPage(title) {
-        return placeholderScreen(title);
+      // A plain text page: How to use and Toolkit.
+      function renderPage(title, blocks) {
+        return {
+          title,
+          nodes: [
+            breadcrumbs([HOME_CRUMB]),
+            element('h1', { className: 'h1', textContent: title }),
+            element('div', { className: 'prose' }, renderBlocks(blocks)),
+          ],
+        };
       }
 
       function renderUnlock() {
@@ -2521,8 +2549,8 @@
         { pattern: /^\/stream\/([a-z0-9-]+)$/, render: (streamId) => renderStream(streamId) },
         { pattern: /^\/level\/([a-z0-9-]+)$/, render: (slug) => renderLevel(slug) },
         { pattern: /^\/everything\/([a-z0-9-]+)$/, render: (routineId) => renderRoutine(routineId) },
-        { pattern: /^\/how-to-use$/, render: () => renderPage('How to use') },
-        { pattern: /^\/toolkit$/, render: () => renderPage('Toolkit') },
+        { pattern: /^\/how-to-use$/, render: () => renderPage('How to use', CONTENT.howToUse) },
+        { pattern: /^\/toolkit$/, render: () => renderPage('Toolkit', CONTENT.toolkit) },
         { pattern: /^\/unlock$/, render: () => renderUnlock() },
       ];
 

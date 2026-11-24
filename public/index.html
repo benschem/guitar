@@ -180,6 +180,14 @@
         color: var(--muted);
       }
 
+      /* For text that followed a bold lead-in in the source ("Quick:
+         one-minute changes", "5 min, warm-up: 1-2-3-4 finger crawl"), so
+         it starts lowercase. Works only on a block, not an inline span or
+         a flex container. */
+      .capitalise-first-letter::first-letter {
+        text-transform: uppercase;
+      }
+
       /* Label hierarchy: three tiers, used consistently across screens.
          - .label-section : section divider, with a trailing hairline that means
                             "a new section starts here". Use on <h2>/<h3>.
@@ -440,9 +448,14 @@
         text-underline-offset: 0.2em;
       }
 
-      /* ---- Stream ---- */
+      /* ---- Cards ---- */
+      /* A .card-link opens from anywhere on its card: the link's ::after
+         stretches over the card. Needs tags sit above it, so they stay
+         tappable on their own. A card can't simply be one big link,
+         because it can hold other links (Needs tags, mentions), and links
+         can't nest. */
 
-      .level-row {
+      .card {
         position: relative;
         display: flex;
         flex-direction: column;
@@ -457,39 +470,40 @@
           background 120ms ease,
           transform 80ms ease;
       }
-      .level-row--current {
-        border-color: var(--accent);
-        box-shadow: 0 0 0 1px var(--accent);
-      }
-      .level-row:has(.level-row-link:active) {
+      .card:has(.card-link:active) {
         transform: scale(0.985);
       }
       @media (hover: hover) {
-        .level-row:has(.level-row-link:hover) {
+        .card:has(.card-link:hover) {
           background: var(--surface-2);
         }
       }
 
-      /* The whole row opens the level: the link's ::after stretches over
-         the row, and Needs tags sit above it so they stay tappable on their
-         own. A row can't simply be one big link, because links can't nest. */
-      .level-row-link {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-      }
-      .level-row-link::after {
+      .card-link::after {
         content: '';
         position: absolute;
         inset: -1px;
         border-radius: var(--radius-medium);
       }
-      .level-row-link:focus-visible {
+      .card-link:focus-visible {
         outline: none;
       }
-      .level-row-link:focus-visible::after {
+      .card-link:focus-visible::after {
         outline: 2px solid var(--accent);
         outline-offset: 2px;
+      }
+
+      /* ---- Stream ---- */
+
+      .level-row--current {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 1px var(--accent);
+      }
+
+      .level-row-link {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
       }
 
       .level-row-text {
@@ -574,12 +588,6 @@
       }
 
       /* ---- Level ---- */
-
-      /* Session and Done when text followed a bold lead-in in the source
-         ("Quick: one-minute changes"), so it starts lowercase. */
-      .capitalise-first-letter::first-letter {
-        text-transform: uppercase;
-      }
 
       /* Quick / Long, as hidden native radio buttons, which bring a radio
          group's arrow keys and screen reader support with them. Each
@@ -676,6 +684,40 @@
       .level-navigation-link:last-child {
         align-items: flex-end;
         text-align: right;
+      }
+
+      /* ---- Everything routines ---- */
+
+      .routine-step-heading {
+        display: flex;
+        align-items: baseline;
+        gap: var(--space-2);
+      }
+
+      .routine-step-number {
+        color: var(--muted);
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .routine-step-minutes {
+        margin-left: auto;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .routine-step-link {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin-top: var(--space-1);
+      }
+
+      .routine-step-link-title {
+        font-weight: 600;
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 0.2em;
       }
     </style>
     <style>
@@ -1569,7 +1611,7 @@
         if (isTicked) linkText.push(element('span', { className: 'sr-only', textContent: ' (ticked)' }));
 
         const children = [
-          element('a', { className: 'level-row-link', href: `#/level/${level.slug}` }, [
+          element('a', { className: 'card-link level-row-link', href: `#/level/${level.slug}` }, [
             tickMark,
             element('span', { className: 'level-row-text' }, linkText),
           ]),
@@ -1578,7 +1620,7 @@
           children.push(element('div', { className: 'needs-tags' }, level.needs.map(needsTag)));
         }
 
-        const row = element('li', { className: 'level-row' }, children);
+        const row = element('li', { className: 'card level-row' }, children);
         row.classList.toggle('level-row--ticked', isTicked);
         row.classList.toggle('level-row--current', isCurrent);
         return row;
@@ -1718,7 +1760,62 @@
       function renderRoutine(routineId) {
         const routine = CONTENT.routines.find((candidate) => candidate.id === routineId);
         if (!routine) return renderNotFound();
-        return placeholderScreen(routine.title);
+
+        const tickedSlugs = readCachedTicks();
+        return {
+          title: routine.title,
+          nodes: [
+            breadcrumbs([HOME_CRUMB]),
+            element('h1', { className: 'h1', textContent: routine.title }),
+            element('div', { className: 'prose' }, [
+              element('p', {}, renderText(CONTENT.routinesIntro)),
+            ]),
+            element(
+              'ol',
+              { className: 'stack' },
+              routine.steps.map((step, index) => routineStep(step, index + 1, tickedSlugs)),
+            ),
+          ],
+        };
+      }
+
+      function routineStep(step, stepNumber, tickedSlugs) {
+        const children = [
+          element('div', { className: 'routine-step-heading' }, [
+            element('span', { className: 'routine-step-number', textContent: `${stepNumber}` }),
+            element('h2', { className: 'h3 capitalise-first-letter' }, renderText(step.label)),
+            element('span', {
+              className: 'meta-line routine-step-minutes',
+              textContent: `${step.minutes} min`,
+            }),
+          ]),
+          element('p', { className: 'capitalise-first-letter' }, renderText(step.text)),
+        ];
+        if (step.streamId) children.push(currentLevelLink(step.streamId, tickedSlugs));
+        return element('li', { className: 'card' }, children);
+      }
+
+      // Links to the stream's current level, or to the stream once every
+      // level in it is ticked.
+      function currentLevelLink(streamId, tickedSlugs) {
+        const stream = CONTENT.streams.find((candidate) => candidate.id === streamId);
+        // Shown rather than thrown, so one typo doesn't blank the screen.
+        if (!stream) return element('p', { textContent: `[Unknown stream: ${streamId}]` });
+
+        const currentIndex = currentLevelIndex(stream, tickedSlugs);
+        const target =
+          currentIndex === -1
+            ? { label: 'Complete', text: stream.name, href: `#/stream/${stream.id}` }
+            : {
+                label: 'Current level',
+                text: stream.levels[currentIndex].title,
+                href: `#/level/${stream.levels[currentIndex].slug}`,
+              };
+
+        return element('a', { className: 'card-link routine-step-link', href: target.href }, [
+          element('span', { className: 'label', textContent: target.label }),
+          element('span', { className: 'routine-step-link-title', textContent: target.text }),
+        ]);
       }
 
       function renderPage(title) {

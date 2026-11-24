@@ -387,7 +387,9 @@
         gap: var(--space-2);
       }
 
-      .stream-card-progress {
+      /* A "2 / 5" count at the right of a stream card or level row. */
+      .progress-count {
+        margin-left: auto;
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
       }
@@ -515,7 +517,7 @@
       .level-row-title {
         font-weight: 600;
       }
-      .level-row--ticked .level-row-title {
+      .level-row--passed .level-row-title {
         color: var(--muted);
       }
 
@@ -646,7 +648,7 @@
         margin-top: var(--space-2);
       }
 
-      /* The Done when tick, as a hidden native checkbox. */
+      /* A Done when test's tick, as a hidden native checkbox. */
       .tick-toggle {
         --tick-mark-size: 36px;
         position: relative;
@@ -658,8 +660,6 @@
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: var(--radius-medium);
-        font-size: 1.125rem;
-        font-weight: 700;
         cursor: pointer;
         transition:
           background 120ms ease,
@@ -767,14 +767,17 @@
       //   names the gear and tone to get ready, or is '' for none. Each
       //   step is one action. A Long that repeats Quick steps has its own
       //   copy of them, so editing one may mean editing the other.
-      // - doneWhen holds the level's tests as { slug, text }. A test's slug
-      //   is permanent too, and unique within its level.
+      // - doneWhen holds the level's tests as { slug, text }. Each test is
+      //   ticked on its own, and the level is passed once all of them are,
+      //   so adding a test un-passes its level until the new test is
+      //   ticked. A test's slug is permanent too, and unique within its
+      //   level.
 
       const CONTENT = {
         howToUse: [
           {
             type: 'p',
-            text: `Pick a stream by mood, do its lowest unticked level as a Quick (15 min) or Long (30–45 min) session, and tick the level when you pass its "Done when" test.`,
+            text: `Pick a stream by mood, do its lowest unticked level as a Quick (15 min) or Long (30–45 min) session, and tick each of its "Done when" tests as you pass it.`,
           },
           {
             type: 'list',
@@ -790,7 +793,7 @@
               },
               {
                 label: `Repeat a level`,
-                text: `as many sessions as it takes. Move on when you pass the test, not when you're bored. If you're bored, switch stream.`,
+                text: `as many sessions as it takes. Move on when you've ticked every test, not when you're bored. If you're bored, switch stream.`,
               },
               { label: `"Needs"`, text: `on a level means do that other level first.` },
               {
@@ -1969,49 +1972,71 @@
         return CONTENT.streams.find((stream) => stream.levels.some((level) => level.slug === slug));
       }
 
-      // The lowest unticked level, or -1 when every level is ticked. Needs
-      // are shown as tags but don't lock a level, so they don't count here.
-      function currentLevelIndex(stream, tickedSlugs) {
-        return stream.levels.findIndex((level) => !tickedSlugs.has(level.slug));
+      // ---- Ticks ----
+      // A tick is a { level, test } pair of slugs, one per ticked test.
+      // Only the tests in CONTENT are ever looked up, so a pair for a test
+      // that no longer exists is ignored.
+
+      function tickMatches(tick, levelSlug, testSlug) {
+        return tick.level === levelSlug && tick.test === testSlug;
+      }
+
+      function isTestTicked(levelSlug, testSlug, ticks) {
+        return ticks.some((tick) => tickMatches(tick, levelSlug, testSlug));
+      }
+
+      function tickedTestCount(level, ticks) {
+        return level.doneWhen.filter((test) => isTestTicked(level.slug, test.slug, ticks)).length;
+      }
+
+      // Worked out from the test ticks every time, never stored.
+      function isLevelPassed(level, ticks) {
+        return level.doneWhen.every((test) => isTestTicked(level.slug, test.slug, ticks));
+      }
+
+      // The lowest level not yet passed, or -1 when every level is passed.
+      // Needs are shown as tags but don't lock a level, so they don't
+      // count here.
+      function currentLevelIndex(stream, ticks) {
+        return stream.levels.findIndex((level) => !isLevelPassed(level, ticks));
       }
 
       // ---- Ticks cache ----
-      // The last ticks response from the server, kept in localStorage so
-      // screens can draw ticks straight away. The stored value may be
-      // missing, hand-edited or unreadable, so the read checks its shape and
-      // falls back to nothing ticked.
+      // The last ticks response from the server, { ticks: [{ level, test }] },
+      // kept in localStorage so screens can draw ticks straight away. The
+      // stored value may be missing, hand-edited, unreadable or from an
+      // older version, so the read keeps only well-formed pairs and falls
+      // back to nothing ticked.
 
       const TICKS_CACHE_KEY = 'guitar:ticks';
+
+      function isWellFormedTick(tick) {
+        return typeof tick?.level === 'string' && typeof tick?.test === 'string';
+      }
 
       function readCachedTicks() {
         try {
           const cached = JSON.parse(localStorage.getItem(TICKS_CACHE_KEY));
-          if (Array.isArray(cached?.ticks)) {
-            return new Set(cached.ticks.filter((slug) => typeof slug === 'string'));
-          }
+          if (Array.isArray(cached?.ticks)) return cached.ticks.filter(isWellFormedTick);
         } catch {
           // Storage is blocked (some private modes) or the value isn't JSON.
         }
-        return new Set();
+        return [];
       }
 
-      function writeCachedTicks(tickedSlugs) {
+      function writeCachedTicks(ticks) {
         try {
-          localStorage.setItem(TICKS_CACHE_KEY, JSON.stringify({ ticks: [...tickedSlugs] }));
+          localStorage.setItem(TICKS_CACHE_KEY, JSON.stringify({ ticks }));
         } catch {
           // Storage is blocked or full. The tick still shows until the next reload.
         }
       }
 
       // There's no server yet, so the cache is the only copy of a tick.
-      function saveTick(slug, isTicked) {
-        const tickedSlugs = readCachedTicks();
-        if (isTicked) {
-          tickedSlugs.add(slug);
-        } else {
-          tickedSlugs.delete(slug);
-        }
-        writeCachedTicks(tickedSlugs);
+      function saveTick(levelSlug, testSlug, isTicked) {
+        const ticks = readCachedTicks().filter((tick) => !tickMatches(tick, levelSlug, testSlug));
+        if (isTicked) ticks.push({ level: levelSlug, test: testSlug });
+        writeCachedTicks(ticks);
       }
 
       // ---- Text and blocks ----
@@ -2109,7 +2134,7 @@
       // the nodes that fill <main>.
 
       function renderHome() {
-        const tickedSlugs = readCachedTicks();
+        const ticks = readCachedTicks();
         return {
           title: null,
           nodes: [
@@ -2133,7 +2158,7 @@
                 'ul',
                 { className: 'stack' },
                 CONTENT.streams.map((stream) =>
-                  element('li', {}, [streamCard(stream, tickedSlugs)]),
+                  element('li', {}, [streamCard(stream, ticks)]),
                 ),
               ),
             ]),
@@ -2141,9 +2166,9 @@
         };
       }
 
-      function streamCard(stream, tickedSlugs) {
-        const tickedCount = stream.levels.filter((level) => tickedSlugs.has(level.slug)).length;
-        const currentIndex = currentLevelIndex(stream, tickedSlugs);
+      function streamCard(stream, ticks) {
+        const passedCount = stream.levels.filter((level) => isLevelPassed(level, ticks)).length;
+        const currentIndex = currentLevelIndex(stream, ticks);
         const currentLevelText =
           currentIndex === -1 ? 'Complete' : stream.levels[currentIndex].title;
 
@@ -2151,8 +2176,8 @@
           element('span', { className: 'stream-card-heading' }, [
             element('span', { className: 'h3', textContent: stream.name }),
             element('span', {
-              className: 'meta-line stream-card-progress',
-              textContent: `${tickedCount} / ${stream.levels.length}`,
+              className: 'meta-line progress-count',
+              textContent: `${passedCount} / ${stream.levels.length}`,
             }),
           ]),
           element('span', { className: 'meta-line', textContent: currentLevelText }),
@@ -2163,8 +2188,8 @@
         const stream = CONTENT.streams.find((candidate) => candidate.id === streamId);
         if (!stream) return renderNotFound();
 
-        const tickedSlugs = readCachedTicks();
-        const currentIndex = currentLevelIndex(stream, tickedSlugs);
+        const ticks = readCachedTicks();
+        const currentIndex = currentLevelIndex(stream, ticks);
 
         return {
           title: stream.name,
@@ -2179,7 +2204,8 @@
                 { className: 'stack' },
                 stream.levels.map((level, index) =>
                   levelRow(level, {
-                    isTicked: tickedSlugs.has(level.slug),
+                    isPassed: isLevelPassed(level, ticks),
+                    tickedCount: tickedTestCount(level, ticks),
                     isCurrent: index === currentIndex,
                   }),
                 ),
@@ -2189,29 +2215,49 @@
         };
       }
 
-      function levelRow(level, { isTicked, isCurrent }) {
+      // The tick mark fills in only once the level is passed. Until then, a
+      // level with some of its tests ticked shows how many.
+      function levelRow(level, { isPassed, tickedCount, isCurrent }) {
         const tickMark = element('span', { className: 'tick-mark', ariaHidden: 'true' });
-        tickMark.classList.toggle('tick-mark--ticked', isTicked);
+        tickMark.classList.toggle('tick-mark--ticked', isPassed);
 
         const linkText = [];
         if (isCurrent) linkText.push(element('span', { className: 'label', textContent: 'Current' }));
         linkText.push(element('span', { className: 'level-row-title', textContent: level.title }));
-        if (isTicked) linkText.push(element('span', { className: 'sr-only', textContent: ' (ticked)' }));
+        if (isPassed) linkText.push(element('span', { className: 'sr-only', textContent: ' (passed)' }));
+
+        const linkChildren = [tickMark, element('span', { className: 'level-row-text' }, linkText)];
+        if (tickedCount > 0 && !isPassed) {
+          linkChildren.push(partlyTickedCount(tickedCount, level.doneWhen.length));
+        }
 
         const children = [
-          element('a', { className: 'card-link level-row-link', href: `#/level/${level.slug}` }, [
-            tickMark,
-            element('span', { className: 'level-row-text' }, linkText),
-          ]),
+          element(
+            'a',
+            { className: 'card-link level-row-link', href: `#/level/${level.slug}` },
+            linkChildren,
+          ),
         ];
         if (level.needs.length > 0) {
           children.push(element('div', { className: 'needs-tags' }, level.needs.map(needsTag)));
         }
 
         const row = element('li', { className: 'card level-row' }, children);
-        row.classList.toggle('level-row--ticked', isTicked);
+        row.classList.toggle('level-row--passed', isPassed);
         row.classList.toggle('level-row--current', isCurrent);
         return row;
+      }
+
+      // "1 / 2" on screen. A screen reader would read the slash aloud, so
+      // it gets the count in words instead.
+      function partlyTickedCount(tickedCount, testCount) {
+        return element('span', { className: 'meta-line progress-count' }, [
+          element('span', { ariaHidden: 'true', textContent: `${tickedCount} / ${testCount}` }),
+          element('span', {
+            className: 'sr-only',
+            textContent: ` (${tickedCount} of ${testCount} tests ticked)`,
+          }),
+        ]);
       }
 
       // "Needs" plus the needed level's title, linked to it. Like a mention,
@@ -2264,7 +2310,7 @@
           );
         }
         nodes.push(
-          doneWhenSection(level, readCachedTicks().has(slug)),
+          doneWhenSection(level, readCachedTicks()),
           levelNavigation(stream, level),
         );
 
@@ -2319,26 +2365,29 @@
         return [setup, steps];
       }
 
-      function doneWhenSection(level, isTicked) {
+      function doneWhenSection(level, ticks) {
         return element('section', { className: 'stack' }, [
           element('h2', { className: 'label-section', textContent: 'Done when' }),
-          element('div', { className: 'prose' }, [
-            element(
-              'ul',
-              {},
-              level.doneWhen.map((test) => element('li', {}, renderText(test.text))),
-            ),
-          ]),
-          element('label', { className: 'tick-toggle' }, [
-            element('input', {
-              type: 'checkbox',
-              className: 'sr-only',
-              checked: isTicked,
-              onchange: (event) => saveTick(level.slug, event.target.checked),
-            }),
-            element('span', { className: 'tick-mark', ariaHidden: 'true' }),
-            'Passed',
-          ]),
+          element(
+            'ul',
+            { className: 'stack' },
+            level.doneWhen.map((test) => element('li', {}, [testToggle(level, test, ticks)])),
+          ),
+        ]);
+      }
+
+      // One test's tick, as a hidden native checkbox labelled with the
+      // test's text.
+      function testToggle(level, test, ticks) {
+        return element('label', { className: 'tick-toggle' }, [
+          element('input', {
+            type: 'checkbox',
+            className: 'sr-only',
+            checked: isTestTicked(level.slug, test.slug, ticks),
+            onchange: (event) => saveTick(level.slug, test.slug, event.target.checked),
+          }),
+          element('span', { className: 'tick-mark', ariaHidden: 'true' }),
+          element('span', {}, renderText(test.text)),
         ]);
       }
 
@@ -2375,7 +2424,7 @@
         const routine = CONTENT.routines.find((candidate) => candidate.id === routineId);
         if (!routine) return renderNotFound();
 
-        const tickedSlugs = readCachedTicks();
+        const ticks = readCachedTicks();
         return {
           title: routine.title,
           nodes: [
@@ -2387,13 +2436,13 @@
             element(
               'ol',
               { className: 'stack' },
-              routine.steps.map((step, index) => routineStep(step, index + 1, tickedSlugs)),
+              routine.steps.map((step, index) => routineStep(step, index + 1, ticks)),
             ),
           ],
         };
       }
 
-      function routineStep(step, stepNumber, tickedSlugs) {
+      function routineStep(step, stepNumber, ticks) {
         const children = [
           element('div', { className: 'routine-step-heading' }, [
             element('span', { className: 'routine-step-number', textContent: `${stepNumber}` }),
@@ -2405,18 +2454,18 @@
           ]),
           element('p', { className: 'capitalise-first-letter' }, renderText(step.text)),
         ];
-        if (step.streamId) children.push(currentLevelLink(step.streamId, tickedSlugs));
+        if (step.streamId) children.push(currentLevelLink(step.streamId, ticks));
         return element('li', { className: 'card' }, children);
       }
 
       // Links to the stream's current level, or to the stream once every
-      // level in it is ticked.
-      function currentLevelLink(streamId, tickedSlugs) {
+      // level in it is passed.
+      function currentLevelLink(streamId, ticks) {
         const stream = CONTENT.streams.find((candidate) => candidate.id === streamId);
         // Shown rather than thrown, so one typo doesn't blank the screen.
         if (!stream) return element('p', { textContent: `[Unknown stream: ${streamId}]` });
 
-        const currentIndex = currentLevelIndex(stream, tickedSlugs);
+        const currentIndex = currentLevelIndex(stream, ticks);
         const target =
           currentIndex === -1
             ? { label: 'Complete', text: stream.name, href: `#/stream/${stream.id}` }

@@ -1,6 +1,6 @@
 # Plan: guitar practice webapp v1
 
-Status: 7/14 steps done.
+Status: 8/14 steps done.
 
 The spec is `HANDOVER.md`: screens, routes, state, the out-of-scope list and the final "Done when" checks. This file holds the decisions made on top of it and the build steps.
 

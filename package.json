@@ -1,0 +1,7 @@
+{
+  "name": "guitar",
+  "private": true,
+  "devDependencies": {
+    "wrangler": "4.166.0"
+  }
+}

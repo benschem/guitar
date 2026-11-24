@@ -1,6 +1,6 @@
 # Plan: guitar practice webapp v1
 
-Status: 9/14 steps done.
+Status: 10/14 steps done.
 
 The spec is `HANDOVER.md`: screens, routes, state, the out-of-scope list and the final "Done when" checks. This file holds the decisions made on top of it and the build steps.
 
@@ -28,6 +28,7 @@ The source text is `~/Downloads/guitar-skill-tree.md`. It stays out of the repo:
 `CONTENT` sits at the top of the script. Sessions and Done when are rewritten into lists (see Sessions and tests), which sets aside the handover's "keep my wording exactly" for them. Everything else is copied from the markdown, with markdown syntax turned into structure, and its wording differs only:
 
 - where prose referred to a level by label (see Mentions)
+- in How to use's "Don't know what you feel like?" bullet, which drops "(next section)", since the routines sit at the top of Home rather than after it
 - in two trimmed sentences: How to use's "Repeat a level" bullet and R4's intro
 - in How to use's two lines about passing "the test", which now say to tick each test
 - in the Toolkit, which leaves out the "Your last two lessons" bullet
@@ -121,7 +122,9 @@ A session is a short list of things to do, so it can be followed with the guitar
 
 ### Security
 
-- **Pinned wrangler:** `package.json` pins wrangler to an exact version, `pnpm-lock.yaml` is committed, and installs go through pnpm. Only `esbuild` and `workerd` may run install scripts, as in `../gym/worker/package.json`. Wrangler holds the Cloudflare login, which also reaches the gym app's database, and a bare `npx wrangler` runs whatever version is cached or newest on npm.
+- **Pinned wrangler:** `package.json` pins wrangler to an exact version, `pnpm-lock.yaml` is committed, and installs go through pnpm. Wrangler holds the Cloudflare login, which also reaches the gym app's database, and a bare `npx wrangler` runs whatever version is cached or newest on npm.
+  - **Install scripts:** only `esbuild` and `workerd` may run them, listed under `allowBuilds` in `pnpm-workspace.yaml`. pnpm 11 reads its settings from there, not from a `pnpm` field in `package.json`, and fails the install if any other dependency has a build script.
+  - **Release age:** pnpm won't install a version newer than its minimum release age unless it's exempted. Pin a wrangler version older than that. Asking for a newer one makes pnpm add `minimumReleaseAgeExclude` entries to `pnpm-workspace.yaml`, which turn the check off for those packages.
 - **Origin check:** POST, PUT and DELETE get a 403 unless `Origin` matches the request's own origin. A missing `Origin` counts as a mismatch, since browsers always send it on these methods. This backs up `SameSite=Strict` instead of relying on browser behaviour alone.
 - **Bound parameters:** every D1 query uses `prepare().bind()`, so a slug never becomes part of the SQL text.
 - **No caching:** API responses send `Cache-Control: no-store`, since the ticks response changes with the cookie.
@@ -247,11 +250,10 @@ Each step is one commit, except step 14, which deploys and has nothing to commit
 
 ### 10. Serve with wrangler
 
-- `package.json` and `pnpm-lock.yaml` with wrangler pinned, `wrangler.jsonc` serving `public/` as static assets with no Worker script yet, and `public/_headers` with the CSP and `X-Robots-Tag`. `.gitignore` covers `node_modules/` and `.wrangler/`.
-- Confirm where pnpm 11 reads the install-scripts allowlist.
+- `package.json`, `pnpm-workspace.yaml` and `pnpm-lock.yaml` with wrangler pinned, `wrangler.jsonc` serving `public/` as static assets with no Worker script yet, and `public/_headers` with the CSP and `X-Robots-Tag`. `.gitignore` covers `node_modules/` and `.wrangler/`.
 - Checks, under `pnpm exec wrangler dev`:
   - The page works as before.
-  - `curl -I` shows the CSP and `X-Robots-Tag`, and the console shows no CSP violations, with the font still loading. If `wrangler dev` doesn't apply `_headers`, these checks move to step 14.
+  - `curl -I` shows the CSP and `X-Robots-Tag`, and the console shows no CSP violations, with the font still loading.
 - Commit: `chore: serve with pinned wrangler and security headers`
 
 ### 11. Ticks API

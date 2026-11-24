@@ -1,0 +1,5 @@
+# Headers for every static file. They don't reach responses built by Worker
+# code, so the API sets its own.
+/*
+  Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
+  X-Robots-Tag: noindex

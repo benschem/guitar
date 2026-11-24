@@ -1,0 +1,5 @@
+# The only dependencies allowed to run install scripts. Both are pulled in
+# by wrangler: esbuild bundles Worker code and workerd is the local runtime.
+allowBuilds:
+  esbuild: true
+  workerd: true

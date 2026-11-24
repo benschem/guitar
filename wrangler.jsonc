@@ -1,0 +1,10 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "guitar",
+  "compatibility_date": "2026-11-24",
+  // Everything in public/ is served as a static file. _headers in there
+  // sets the security and no-indexing headers on those files.
+  "assets": {
+    "directory": "./public/",
+  },
+}

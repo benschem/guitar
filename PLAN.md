@@ -1,6 +1,6 @@
 # Plan: guitar practice webapp v1
 
-Status: 6/14 steps done.
+Status: 7/14 steps done.
 
 The spec is `HANDOVER.md`: screens, routes, state, the out-of-scope list and the final "Done when" checks. This file holds the decisions made on top of it and the build steps.
 
@@ -76,9 +76,10 @@ const CONTENT = {
 
 A session is a short list of things to do, so it can be followed with the guitar in hand and then put down.
 
-- **Set up** lists gear and tone only: metronome, drum beat, backing track and key, looper, gain. Values that can change within a session, like BPM, stay in the step that uses them.
+- **Set up** lists gear and tone only: timer, metronome, drum beat, backing track and key, looper, gain. Values that can change within a session, like BPM or gain switched on partway, stay in the step that uses them.
 - **Steps** are one action each. Each starts with a verb and carries its own numbers (chords, frets, bars). How to do a step goes in Tips. Steps aren't grouped under names and carry no minutes. Both were considered and turned down.
-- **Tips** are the technique cues taken out of the session text, plus what followed the sessions in the markdown, like C1's "Tips:" paragraph. They show under both Quick and Long.
+- **Drill names** ("one-minute changes", "the string check") are dropped, and each drill is written out in full wherever it's used. A name stays only where other text refers to it, like "chord, chk" in Muting's Done when.
+- **Tips** are the technique cues taken out of the session text, plus what followed the sessions in the markdown, like C1's "Tips:" paragraph. They show under both Quick and Long, so a tip about one session's drill says which drill it means.
 - **Long stands alone.** Where it repeats the Quick drill, it has its own copy of those steps, so a session never needs the other one's text.
 - **Done when** is split wherever "and" joins two tests, but not where it joins a list ("G, C, D, A and E"). On the Level screen, each test is its own tick toggle, labelled with its text.
 - **Test slugs** are unique within their level and permanent, like level slugs.

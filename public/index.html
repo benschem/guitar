@@ -393,7 +393,7 @@
       }
 
       /* ---- Text blocks ---- */
-      /* Intro, after, How to use and Toolkit text, from CONTENT's blocks. */
+      /* Intro, session, tips, How to use and Toolkit text. */
 
       .prose {
         display: flex;
@@ -634,6 +634,18 @@
         }
       }
 
+      .session-setup {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      /* Each step is a separate action, so they get more space than
+         ordinary list items. */
+      .prose .session-steps li + li {
+        margin-top: var(--space-2);
+      }
+
       /* The Done when tick, as a hidden native checkbox. */
       .tick-toggle {
         --tick-mark-size: 36px;
@@ -747,10 +759,16 @@
       //   never rename one. Title and order can change freely.
       // - To refer to a level in any text, write [[slug]]. It shows as the
       //   level's current title, linked, so it can't go stale.
-      // - intro, after, howToUse and toolkit hold blocks:
+      // - intro, tips, howToUse and toolkit hold blocks:
       //   { type: 'p', text }, { type: 'heading', text },
       //   { type: 'list', ordered, items: [{ label, text }] } where label is
       //   an optional bold lead-in, and { type: 'table', head, rows }.
+      // - A level's quick and long sessions are { setup, steps }. setup
+      //   names the gear and tone to get ready, or is '' for none. Each
+      //   step is one action. A Long that repeats Quick steps has its own
+      //   copy of them, so editing one may mean editing the other.
+      // - doneWhen holds the level's tests as { slug, text }. A test's slug
+      //   is permanent too, and unique within its level.
 
       const CONTENT = {
         howToUse: [
@@ -901,25 +919,96 @@
                 title: `Open chord changes`,
                 needs: [],
                 intro: [],
-                quick: `one-minute changes. Pick your two worst open-chord pairs (try C–G, G–D, Em–C, Am–E). Set a 1-minute timer and switch back and forth, strumming once per chord. Count the changes. Do 2 rounds per pair.`,
-                long: `one-minute changes on 5 pairs. Then play G–D–Em–C at 70 BPM: first 4 beats per chord, then 2. Finish with 3 minutes of that progression over a drum beat.`,
-                after: [
+                quick: {
+                  setup: `Timer`,
+                  steps: [
+                    `Pick your two worst open-chord pairs (try C–G, G–D, Em–C, Am–E).`,
+                    `Do 2 rounds on each pair: switch back and forth for 1 minute, strumming once per chord, and count the changes.`,
+                  ],
+                },
+                long: {
+                  setup: `Timer, metronome, drum beat`,
+                  steps: [
+                    `Pick 5 open-chord pairs (try C–G, G–D, Em–C, Am–E).`,
+                    `Switch back and forth on each pair for 1 minute, strumming once per chord, and count the changes.`,
+                    `Play G–D–Em–C at 70 BPM, 4 beats per chord.`,
+                    `Play G–D–Em–C at 70 BPM, 2 beats per chord.`,
+                    `Play G–D–Em–C over a drum beat for 3 minutes.`,
+                  ],
+                },
+                tips: [
                   {
-                    type: 'p',
-                    text: `Tips: keep any finger that stays on the same fret (a "pivot finger") down between chords. Look at where you're going next before you move. Letting open strings ring on the last strum before a change is normal in rock, and it keeps you in time.`,
+                    type: 'list',
+                    ordered: false,
+                    items: [
+                      {
+                        text: `Keep any finger that stays on the same fret (a "pivot finger") down between chords.`,
+                      },
+                      { text: `Look at where you're going next before you move.` },
+                      {
+                        text: `Letting open strings ring on the last strum before a change is normal in rock, and it keeps you in time.`,
+                      },
+                    ],
                   },
                 ],
-                doneWhen: `60 changes a minute (30 of each chord) on every common open pair, with most of them ringing clean, and G–D–Em–C at 2 beats per chord at 80 BPM with no gaps.`,
+                doneWhen: [
+                  {
+                    slug: 'sixty-a-minute',
+                    text: `60 changes a minute (30 of each chord) on every common open pair, with most of them ringing clean`,
+                  },
+                  {
+                    slug: 'no-gaps-at-80',
+                    text: `G–D–Em–C at 2 beats per chord at 80 BPM, with no gaps`,
+                  },
+                ],
               },
               {
                 slug: 'barre-chords',
                 title: `Barre chords that ring and change`,
                 needs: [],
                 intro: [],
-                quick: `the string check. Play an E-shape barre at fret 5 (A), then pick each string on its own. Fix any dead string by rolling your index finger slightly onto its bony edge, dropping your thumb behind the neck and pulling your elbow in. Repeat for A-shape, minor E-shape and minor A-shape.`,
-                long: `string check, then one-minute changes between shapes. Try A (E-shape, fret 5) to D (A-shape, fret 5), and Am (fret 5) to Dm (fret 5). Then play A–D–E entirely in barre chords over a drum beat.`,
-                after: [],
-                doneWhen: `every string rings on all four shapes at three different frets, and 30+ changes a minute between E-shape and A-shape.`,
+                quick: {
+                  setup: '',
+                  steps: [
+                    `Play an E-shape barre at fret 5 (A).`,
+                    `Pick each string on its own.`,
+                    `Fix any dead string.`,
+                    `Repeat for the A-shape, minor E-shape and minor A-shape.`,
+                  ],
+                },
+                long: {
+                  setup: `Timer, drum beat`,
+                  steps: [
+                    `Play an E-shape barre at fret 5 (A).`,
+                    `Pick each string on its own.`,
+                    `Fix any dead string.`,
+                    `Repeat for the A-shape, minor E-shape and minor A-shape.`,
+                    `Switch back and forth between A (E-shape, fret 5) and D (A-shape, fret 5) for 1 minute, strumming once per chord, and count the changes.`,
+                    `Do the same between Am (fret 5) and Dm (fret 5).`,
+                    `Play A–D–E entirely in barre chords over a drum beat.`,
+                  ],
+                },
+                tips: [
+                  {
+                    type: 'list',
+                    ordered: false,
+                    items: [
+                      {
+                        text: `Fix a dead string by rolling your index finger slightly onto its bony edge, dropping your thumb behind the neck and pulling your elbow in.`,
+                      },
+                    ],
+                  },
+                ],
+                doneWhen: [
+                  {
+                    slug: 'every-string-rings',
+                    text: `Every string rings on all four shapes at three different frets`,
+                  },
+                  {
+                    slug: 'thirty-a-minute',
+                    text: `30+ changes a minute between E-shape and A-shape`,
+                  },
+                ],
               },
               {
                 slug: 'muting',
@@ -931,10 +1020,53 @@
                     text: `On electric with any gain, unmuted strings get loud. Good players stop strings as much as they fret them.`,
                   },
                 ],
-                quick: `"chord, chk". Strum a chord, then relax your fretting hand so the strings are muted but not pressed. Strum again for a percussive "chk". Alternate them in 8ths at 80 BPM. Then power chords with gain on: strum all six strings and only 2–3 should sound. The tip of the finger on the root mutes the string below it. The underside of your index finger mutes the strings above.`,
-                long: `the Quick drills, then palm muting. Rest the edge of your picking hand on the strings right by the bridge and play muted 8ths on the low E. Move closer to and further from the bridge until it chugs but still has pitch. Then switch every 2 bars between palm-muted and open on an E5–G5–A5 progression.`,
-                after: [],
-                doneWhen: `with gain up, you can strum all six strings on any power chord and hear only the chord, and "chord, chk" is even at 90 BPM.`,
+                quick: {
+                  setup: `Metronome`,
+                  steps: [
+                    `Strum a chord.`,
+                    `Relax your fretting hand so the strings are muted but not pressed.`,
+                    `Strum again, for a percussive "chk".`,
+                    `Alternate them, "chord, chk", in 8ths at 80 BPM.`,
+                    `Turn the gain on.`,
+                    `Play power chords, strumming all six strings. Only 2–3 should sound.`,
+                  ],
+                },
+                long: {
+                  setup: `Metronome`,
+                  steps: [
+                    `Strum a chord.`,
+                    `Relax your fretting hand so the strings are muted but not pressed.`,
+                    `Strum again, for a percussive "chk".`,
+                    `Alternate them, "chord, chk", in 8ths at 80 BPM.`,
+                    `Turn the gain on.`,
+                    `Play power chords, strumming all six strings. Only 2–3 should sound.`,
+                    `Rest the edge of your picking hand on the strings right by the bridge.`,
+                    `Play muted 8ths on the low E.`,
+                    `Move your hand closer to and further from the bridge until it chugs but still has pitch.`,
+                    `Play E5–G5–A5, switching between palm-muted and open every 2 bars.`,
+                  ],
+                },
+                tips: [
+                  {
+                    type: 'list',
+                    ordered: false,
+                    items: [
+                      {
+                        text: `On a power chord, the tip of the finger on the root mutes the string below it, and the underside of your index finger mutes the strings above.`,
+                      },
+                    ],
+                  },
+                ],
+                doneWhen: [
+                  {
+                    slug: 'only-the-chord',
+                    text: `With gain up, you can strum all six strings on any power chord and hear only the chord`,
+                  },
+                  {
+                    slug: 'chord-chk-at-90',
+                    text: `"Chord, chk" is even at 90 BPM`,
+                  },
+                ],
               },
               {
                 slug: 'sus-and-triads',
@@ -946,10 +1078,43 @@
                     text: `This is a lot of the "indie" sound: open chords with notes added or moved, and small 3-string chords up the neck.`,
                   },
                 ],
-                quick: `the anchored set. G (320033), Cadd9 (x32033), Em7 (022033), Dsus4 (xx0233). Your ring and pinky stay on the top two strings the whole time. Change between them slowly, then over a drum beat.`,
-                long: `sus moves inside a strum. Play D, Dsus2, D, Dsus4 and A, Asus2, A, Asus4 without breaking rhythm. Then learn G, C and D as triads on the top 3 strings in two places each, and play a progression with only those.`,
-                after: [],
-                doneWhen: `you can add sus moves to any 4-chord progression without breaking rhythm, and play it with top-string triads.`,
+                quick: {
+                  setup: `Drum beat`,
+                  steps: [
+                    `Change slowly between G (320033), Cadd9 (x32033), Em7 (022033) and Dsus4 (xx0233).`,
+                    `Change between them over a drum beat.`,
+                  ],
+                },
+                long: {
+                  setup: '',
+                  steps: [
+                    `Strum D, Dsus2, D, Dsus4 without breaking rhythm.`,
+                    `Strum A, Asus2, A, Asus4 without breaking rhythm.`,
+                    `Learn G, C and D as triads on the top 3 strings, in two places each.`,
+                    `Play a progression with only those triads.`,
+                  ],
+                },
+                tips: [
+                  {
+                    type: 'list',
+                    ordered: false,
+                    items: [
+                      {
+                        text: `In the G, Cadd9, Em7, Dsus4 set, your ring and pinky stay on the top two strings the whole time.`,
+                      },
+                    ],
+                  },
+                ],
+                doneWhen: [
+                  {
+                    slug: 'sus-moves',
+                    text: `You can add sus moves to any 4-chord progression without breaking rhythm`,
+                  },
+                  {
+                    slug: 'top-string-triads',
+                    text: `You can play any 4-chord progression with top-string triads`,
+                  },
+                ],
               },
             ],
           },
@@ -968,10 +1133,45 @@
                 title: `Lock to the click`,
                 needs: [],
                 intro: [],
-                quick: `metronome at 70 BPM. Downstrums on each beat on one chord, counting "1 2 3 4" out loud. Then 8ths: down on the numbers, up on the "and". Your hand never stops moving down-up, even when it doesn't hit the strings.`,
-                long: `the Quick drill with chord changes. Then halve the metronome speed (70 to 35 BPM) and treat each click as beat 2 or 4, where the snare goes. Keep strumming 8ths. Record 1 minute on your phone and listen back for rushing or dragging.`,
-                after: [],
-                doneWhen: `8ths with constant hand motion at 100 BPM for 2 minutes including changes, and the recording sounds even.`,
+                quick: {
+                  setup: `Metronome`,
+                  steps: [
+                    `Play downstrums on each beat on one chord at 70 BPM, counting "1 2 3 4" out loud.`,
+                    `Play 8ths at 70 BPM: down on the numbers, up on the "and".`,
+                  ],
+                },
+                long: {
+                  setup: `Metronome`,
+                  steps: [
+                    `Play downstrums on each beat at 70 BPM with chord changes, counting "1 2 3 4" out loud.`,
+                    `Play 8ths at 70 BPM with chord changes: down on the numbers, up on the "and".`,
+                    `Halve the metronome speed, from 70 to 35 BPM.`,
+                    `Keep strumming 8ths, treating each click as beat 2 or 4, where the snare goes.`,
+                    `Record 1 minute on your phone.`,
+                    `Listen back for rushing or dragging.`,
+                  ],
+                },
+                tips: [
+                  {
+                    type: 'list',
+                    ordered: false,
+                    items: [
+                      {
+                        text: `Your hand never stops moving down-up, even when it doesn't hit the strings.`,
+                      },
+                    ],
+                  },
+                ],
+                doneWhen: [
+                  {
+                    slug: 'constant-motion-at-100',
+                    text: `8ths with constant hand motion at 100 BPM for 2 minutes, including changes`,
+                  },
+                  {
+                    slug: 'even-recording',
+                    text: `The recording sounds even`,
+                  },
+                ],
               },
               {
                 slug: 'strumming',
@@ -983,20 +1183,59 @@
                     text: `Every strumming pattern is the same constant down-up motion, with some strokes missing the strings. Once that clicks, you can make up patterns instead of memorising them.`,
                   },
                 ],
-                quick: `D · D U · U D U (the strings are hit on 1, 2, 2-and, 3-and, 4, 4-and; the dots are misses). Use constant motion on one chord, then over G–D–Em–C.`,
-                long: `the Quick pattern, then 16ths ("1 e and a") at 60 BPM with accents on 2 and 4. Make up three patterns of your own. Put on a song you like and work out whether it's an 8th or 16th feel.`,
-                after: [],
-                doneWhen: `you can switch between three patterns mid-progression without stopping or losing the beat.`,
+                quick: {
+                  setup: '',
+                  steps: [
+                    `Play D · D U · U D U (the strings are hit on 1, 2, 2-and, 3-and, 4, 4-and; the dots are misses) with constant motion on one chord.`,
+                    `Play it over G–D–Em–C.`,
+                  ],
+                },
+                long: {
+                  setup: `Metronome`,
+                  steps: [
+                    `Play D · D U · U D U (the strings are hit on 1, 2, 2-and, 3-and, 4, 4-and; the dots are misses) with constant motion on one chord.`,
+                    `Play it over G–D–Em–C.`,
+                    `Play 16ths ("1 e and a") at 60 BPM, with accents on 2 and 4.`,
+                    `Make up three patterns of your own.`,
+                    `Put on a song you like.`,
+                    `Work out whether it's an 8th or 16th feel.`,
+                  ],
+                },
+                tips: [],
+                doneWhen: [
+                  {
+                    slug: 'switch-patterns',
+                    text: `You can switch between three patterns mid-progression without stopping or losing the beat`,
+                  },
+                ],
               },
               {
                 slug: 'power-chords',
                 title: `Power chords and palm muting`,
                 needs: ['muting'],
                 intro: [],
-                quick: `palm-muted 8ths on E5, then A5, then D5, at 100 BPM. Accent the first of every 4.`,
-                long: `classic rock moves. Try the A5–A6 shuffle, alternating palm-muted and open bars, and a "push" where the next chord lands on the "and" of 4 instead of on 1. Then write your own 4-bar riff using all three.`,
-                after: [],
-                doneWhen: `your own 4-bar power-chord riff at 120 BPM, with palm mutes and one push, played 4 times in a row cleanly.`,
+                quick: {
+                  setup: `Metronome`,
+                  steps: [
+                    `Play palm-muted 8ths on E5, then A5, then D5, at 100 BPM, accenting the first of every 4.`,
+                  ],
+                },
+                long: {
+                  setup: '',
+                  steps: [
+                    `Play the A5–A6 shuffle.`,
+                    `Alternate palm-muted and open bars.`,
+                    `Play a "push", where the next chord lands on the "and" of 4 instead of on 1.`,
+                    `Write your own 4-bar riff using all three.`,
+                  ],
+                },
+                tips: [],
+                doneWhen: [
+                  {
+                    slug: 'own-riff-at-120',
+                    text: `Your own 4-bar power-chord riff at 120 BPM, with palm mutes and one push, played 4 times in a row cleanly`,
+                  },
+                ],
               },
               {
                 slug: 'looper',
@@ -1008,20 +1247,85 @@
                     text: `The whole trick is pressing the pedal exactly on beat 1 to start and exactly on the next beat 1 to stop.`,
                   },
                 ],
-                quick: `metronome at 80. Count "1 2 3 4" out loud, press record on the next 1, strum one chord on the downbeats for 4 bars, and press again on the following 1. Play anything over it for 2 minutes, then delete it. Do this 3 times.`,
-                long: `loop a 4-chord progression the same way. Add a second layer (single notes or a palm-muted part), then improvise on top. If a loop is off, delete it and go again. It costs you 10 seconds.`,
-                after: [],
-                doneWhen: `you get a clean 4-bar loop on the first or second try, and can jam over it for 5 minutes.`,
+                quick: {
+                  setup: `Metronome, looper`,
+                  steps: [
+                    `Count "1 2 3 4" out loud with the metronome at 80 BPM.`,
+                    `Press record on the next 1.`,
+                    `Strum one chord on the downbeats for 4 bars.`,
+                    `Press again on the following 1.`,
+                    `Play anything over the loop for 2 minutes.`,
+                    `Delete the loop.`,
+                    `Do all of that 2 more times.`,
+                  ],
+                },
+                long: {
+                  setup: `Metronome, looper`,
+                  steps: [
+                    `Count "1 2 3 4" out loud with the metronome at 80 BPM.`,
+                    `Press record on the next 1.`,
+                    `Strum a 4-chord progression on the downbeats for 4 bars.`,
+                    `Press again on the following 1.`,
+                    `Add a second layer (single notes or a palm-muted part).`,
+                    `Improvise on top.`,
+                  ],
+                },
+                tips: [
+                  {
+                    type: 'list',
+                    ordered: false,
+                    items: [
+                      {
+                        text: `If a loop is off, delete it and go again. It costs you 10 seconds.`,
+                      },
+                    ],
+                  },
+                ],
+                doneWhen: [
+                  {
+                    slug: 'clean-loop',
+                    text: `You get a clean 4-bar loop on the first or second try`,
+                  },
+                  {
+                    slug: 'jam-five-minutes',
+                    text: `You can jam over your loop for 5 minutes`,
+                  },
+                ],
               },
               {
                 slug: 'dynamics',
                 title: `Dynamics and parts`,
                 needs: [],
                 intro: [],
-                quick: `play one progression three ways: quiet picked notes (verse), palm-muted 8ths (build), big open strums (chorus).`,
-                long: `arpeggiate the chords (pick through the strings one by one) and mix that with strums. Then try funky 16th "chk" scratches with short chord stabs. Loop a verse and chorus part and switch between them.`,
-                after: [],
-                doneWhen: `you can play a verse → build → chorus over a loop or drum beat, and it sounds like a section of a song.`,
+                quick: {
+                  setup: '',
+                  steps: [
+                    `Play one progression as quiet picked notes (verse).`,
+                    `Play it as palm-muted 8ths (build).`,
+                    `Play it as big open strums (chorus).`,
+                  ],
+                },
+                long: {
+                  setup: `Looper`,
+                  steps: [
+                    `Arpeggiate the chords of a progression (pick through the strings one by one).`,
+                    `Mix that with strums.`,
+                    `Play funky 16th "chk" scratches with short chord stabs.`,
+                    `Loop a verse and chorus part.`,
+                    `Switch between them.`,
+                  ],
+                },
+                tips: [],
+                doneWhen: [
+                  {
+                    slug: 'verse-build-chorus',
+                    text: `You can play a verse → build → chorus over a loop or drum beat`,
+                  },
+                  {
+                    slug: 'sounds-like-a-song',
+                    text: `Your verse → build → chorus sounds like a section of a song`,
+                  },
+                ],
               },
             ],
           },
@@ -1045,10 +1349,37 @@
                     text: `These two strings place every power chord and barre chord. The notes go A B C D E F G. Each is two frets from the next, except B–C and E–F, which are one fret apart. Landmarks on the low E: G at 3, A at 5, B at 7, C at 8, E at 12. On the A string: C at 3, D at 5, E at 7, G at 10.`,
                   },
                 ],
-                quick: `name a random note, find it on the E string, then the A string, aiming for under 3 seconds. Play a power chord on it each time.`,
-                long: `play frets 0–12 on the E string, saying each note name aloud, up and back. Then the A string. Then barre call-outs: pick a chord name (C#m, Bb, F#) and play it as an E-shape and an A-shape barre.`,
-                after: [],
-                doneWhen: `any natural note on E or A in under 2 seconds, and any major or minor barre chord in two places in under 5 seconds.`,
+                quick: {
+                  setup: '',
+                  steps: [
+                    `Name a random note.`,
+                    `Find it on the E string, aiming for under 3 seconds.`,
+                    `Play a power chord on it.`,
+                    `Find it on the A string, aiming for under 3 seconds.`,
+                    `Play a power chord on it.`,
+                  ],
+                },
+                long: {
+                  setup: '',
+                  steps: [
+                    `Play frets 0–12 on the E string, up and back, saying each note name aloud.`,
+                    `Play frets 0–12 on the A string, up and back, saying each note name aloud.`,
+                    `Pick a chord name (C#m, Bb, F#).`,
+                    `Play it as an E-shape barre.`,
+                    `Play it as an A-shape barre.`,
+                  ],
+                },
+                tips: [],
+                doneWhen: [
+                  {
+                    slug: 'any-note-in-2-seconds',
+                    text: `Any natural note on E or A in under 2 seconds`,
+                  },
+                  {
+                    slug: 'any-barre-in-5-seconds',
+                    text: `Any major or minor barre chord in two places in under 5 seconds`,
+                  },
+                ],
               },
               {
                 slug: 'octaves',
@@ -1072,10 +1403,28 @@
                     ],
                   },
                 ],
-                quick: `pick a note, find it on E, jump to D. Then A to G, then D to B.`,
-                long: `play every C on the neck at 60 BPM, one note per beat, low to high and back. Do a different note each session.`,
-                after: [],
-                doneWhen: `you can find every instance of a given note on the neck in under 20 seconds.`,
+                quick: {
+                  setup: '',
+                  steps: [
+                    `Pick a note.`,
+                    `Find it on E, then jump to D.`,
+                    `Find it on A, then jump to G.`,
+                    `Find it on D, then jump to B.`,
+                  ],
+                },
+                long: {
+                  setup: `Metronome`,
+                  steps: [
+                    `Play every C on the neck at 60 BPM, one note per beat, low to high and back. Do a different note each session.`,
+                  ],
+                },
+                tips: [],
+                doneWhen: [
+                  {
+                    slug: 'every-instance-in-20-seconds',
+                    text: `You can find every instance of a given note on the neck in under 20 seconds`,
+                  },
+                ],
               },
               {
                 slug: 'intervals',
@@ -1099,10 +1448,28 @@
                     ],
                   },
                 ],
-                quick: `pick a root on the A string and play the root, then the 5th, major 3rd, minor 3rd, flat 7th and octave.`,
-                long: `build major and minor chords from those shapes, and notice the 3rd is the only note that changes. Then, while playing a progression, find the 3rd of each chord.`,
-                after: [],
-                doneWhen: `you can find the 3rd and 5th of whatever chord you're playing without stopping to work it out.`,
+                quick: {
+                  setup: '',
+                  steps: [
+                    `Pick a root on the A string.`,
+                    `Play the root, then the 5th, major 3rd, minor 3rd, flat 7th and octave.`,
+                  ],
+                },
+                long: {
+                  setup: '',
+                  steps: [
+                    `Build major and minor chords from the interval shapes.`,
+                    `Notice that the 3rd is the only note that changes.`,
+                    `Find the 3rd of each chord while playing a progression.`,
+                  ],
+                },
+                tips: [],
+                doneWhen: [
+                  {
+                    slug: 'third-and-fifth',
+                    text: `You can find the 3rd and 5th of whatever chord you're playing without stopping to work it out`,
+                  },
+                ],
               },
               {
                 slug: 'caged',
@@ -1114,10 +1481,26 @@
                     text: `Every chord can be played in five shapes up the neck: the open C, A, G, E and D shapes, moved up. You already know two of them (your E-shape and A-shape barres).`,
                   },
                 ],
-                quick: `play a C major chord in all five shapes, from the open position to the 12th fret.`,
-                long: `play I–IV–V (G–C–D) using whichever shapes are closest to each other, so your hand stays in one area of the neck. Then do it in a second area.`,
-                after: [],
-                doneWhen: `you can play a 4-chord progression in two different neck areas without big jumps.`,
+                quick: {
+                  setup: '',
+                  steps: [
+                    `Play a C major chord in all five shapes, from the open position to the 12th fret.`,
+                  ],
+                },
+                long: {
+                  setup: '',
+                  steps: [
+                    `Play I–IV–V (G–C–D) using whichever shapes are closest to each other, so your hand stays in one area of the neck.`,
+                    `Do it again in a second area.`,
+                  ],
+                },
+                tips: [],
+                doneWhen: [
+                  {
+                    slug: 'two-neck-areas',
+                    text: `You can play a 4-chord progression in two different neck areas without big jumps`,
+                  },
+                ],
               },
             ],
           },
@@ -1156,10 +1539,29 @@
                     text: `The vi chord is the "relative minor". Em uses the same chords as G major, but treats Em as home. (The diminished vii chord is rare in rock, so it's left out.)`,
                   },
                 ],
-                quick: `pick a key, say its six chords out loud, then play I–IV–V–I and I–vi–IV–V.`,
-                long: `play all six chords in G, D and A (barre chords for anything that isn't open). Then play Em–C–G–D and hear how the same chords feel sadder when the minor chord is home.`,
-                after: [],
-                doneWhen: `you can name the chords in G, C, D, A and E without looking at the table.`,
+                quick: {
+                  setup: '',
+                  steps: [
+                    `Pick a key.`,
+                    `Say its six chords out loud.`,
+                    `Play I–IV–V–I.`,
+                    `Play I–vi–IV–V.`,
+                  ],
+                },
+                long: {
+                  setup: '',
+                  steps: [
+                    `Play all six chords in G, D and A, with barre chords for anything that isn't open.`,
+                    `Play Em–C–G–D and hear how the same chords feel sadder when the minor chord is home.`,
+                  ],
+                },
+                tips: [],
+                doneWhen: [
+                  {
+                    slug: 'name-the-chords',
+                    text: `You can name the chords in G, C, D, A and E without looking at the table`,
+                  },
+                ],
               },
               {
                 slug: 'progressions',
@@ -1183,10 +1585,29 @@
                     text: `In a minor key, the numbers are counted from the minor chord. bVII means the chord a whole step below home.`,
                   },
                 ],
-                quick: `pick one progression and play it in three keys over a drum beat.`,
-                long: `play every progression in the table in two keys. Then write your own 4-chord progression, loop it, and jam over it.`,
-                after: [],
-                doneWhen: `someone says "I–V–vi–IV in A" and you play A–E–F#m–D without stopping to work it out.`,
+                quick: {
+                  setup: `Drum beat`,
+                  steps: [
+                    `Pick one progression.`,
+                    `Play it in three keys over a drum beat.`,
+                  ],
+                },
+                long: {
+                  setup: `Looper`,
+                  steps: [
+                    `Play every progression in the table in two keys.`,
+                    `Write your own 4-chord progression.`,
+                    `Loop it.`,
+                    `Jam over it.`,
+                  ],
+                },
+                tips: [],
+                doneWhen: [
+                  {
+                    slug: 'play-by-number',
+                    text: `Someone says "I–V–vi–IV in A" and you play A–E–F#m–D without stopping to work it out`,
+                  },
+                ],
               },
               {
                 slug: 'ear',
@@ -1195,10 +1616,33 @@
                 intro: [
                   { type: 'p', text: `This is the fun replacement for learning songs from tabs.` },
                 ],
-                quick: `put on a song you like. Hum the note it feels like it "comes home" to, and find that note on the low E string. Try a major chord and then a minor chord on it. Whichever fits is probably the key.`,
-                long: `work out the song's whole progression. Follow the bass note first, then try chords from that key. If nothing fits, try the borrowed ones (bVII, bVI, iv) from [[progressions]].`,
-                after: [],
-                doneWhen: `you can work out the chords to a simple rock or indie song by ear in under 20 minutes.`,
+                quick: {
+                  setup: '',
+                  steps: [
+                    `Put on a song you like.`,
+                    `Hum the note it feels like it "comes home" to.`,
+                    `Find that note on the low E string.`,
+                    `Try a major chord and then a minor chord on it. Whichever fits is probably the key.`,
+                  ],
+                },
+                long: {
+                  setup: '',
+                  steps: [
+                    `Put on a song you like.`,
+                    `Hum the note it feels like it "comes home" to.`,
+                    `Find that note on the low E string.`,
+                    `Try a major chord and then a minor chord on it. Whichever fits is probably the key.`,
+                    `Work out the song's whole progression. Follow the bass note first, then try chords from that key.`,
+                    `Try the borrowed ones (bVII, bVI, iv) from [[progressions]] if nothing fits.`,
+                  ],
+                },
+                tips: [],
+                doneWhen: [
+                  {
+                    slug: 'by-ear-in-20-minutes',
+                    text: `You can work out the chords to a simple rock or indie song by ear in under 20 minutes`,
+                  },
+                ],
               },
               {
                 slug: 'tension',
@@ -1230,10 +1674,32 @@
                     ],
                   },
                 ],
-                quick: `play I–V and stop, and notice the urge to finish. Then play C–F–Fm–C and listen to what the Fm does.`,
-                long: `take any progression from [[progressions]] and swap one chord for a borrowed one. Then write two progressions: one that feels settled and one that never quite lands.`,
-                after: [],
-                doneWhen: `you can predict how a chord swap will sound before playing it, and explain why in one sentence.`,
+                quick: {
+                  setup: '',
+                  steps: [
+                    `Play I–V and stop, and notice the urge to finish.`,
+                    `Play C–F–Fm–C and listen to what the Fm does.`,
+                  ],
+                },
+                long: {
+                  setup: '',
+                  steps: [
+                    `Take any progression from [[progressions]] and swap one chord for a borrowed one.`,
+                    `Write a progression that feels settled.`,
+                    `Write one that never quite lands.`,
+                  ],
+                },
+                tips: [],
+                doneWhen: [
+                  {
+                    slug: 'predict-a-swap',
+                    text: `You can predict how a chord swap will sound before playing it`,
+                  },
+                  {
+                    slug: 'explain-why',
+                    text: `You can explain why a chord swap sounds that way in one sentence`,
+                  },
+                ],
               },
             ],
           },
@@ -1252,10 +1718,32 @@
                 title: `Pentatonic box 1 and the root`,
                 needs: [],
                 intro: [],
-                quick: `A minor pentatonic at fret 5 (E string: 5, 8; A: 5, 7; D: 5, 7; G: 5, 7; B: 5, 8; high E: 5, 8). Play it up and down in 8ths at 70 BPM. Then play only the A notes in the box: low E fret 5, D string fret 7, high E fret 5.`,
-                long: `the Quick drill, then 15 minutes over an A minor rock backing track. Rules: play 2–4 notes, then rest as long as you played. End most phrases on an A.`,
-                after: [],
-                doneWhen: `you can improvise over A minor for 3 minutes without clashing notes, and always know where the nearest A is.`,
+                quick: {
+                  setup: `Metronome`,
+                  steps: [
+                    `Play A minor pentatonic at fret 5 (E string: 5, 8; A: 5, 7; D: 5, 7; G: 5, 7; B: 5, 8; high E: 5, 8) up and down in 8ths at 70 BPM.`,
+                    `Play only the A notes in the box: low E fret 5, D string fret 7, high E fret 5.`,
+                  ],
+                },
+                long: {
+                  setup: `Metronome, A minor rock backing track`,
+                  steps: [
+                    `Play A minor pentatonic at fret 5 (E string: 5, 8; A: 5, 7; D: 5, 7; G: 5, 7; B: 5, 8; high E: 5, 8) up and down in 8ths at 70 BPM.`,
+                    `Play only the A notes in the box: low E fret 5, D string fret 7, high E fret 5.`,
+                    `Improvise over the backing track for 15 minutes. Rules: play 2–4 notes, then rest as long as you played, and end most phrases on an A.`,
+                  ],
+                },
+                tips: [],
+                doneWhen: [
+                  {
+                    slug: 'three-minutes-no-clashes',
+                    text: `You can improvise over A minor for 3 minutes without clashing notes`,
+                  },
+                  {
+                    slug: 'nearest-a',
+                    text: `You always know where the nearest A is`,
+                  },
+                ],
               },
               {
                 slug: 'bends-and-slides',
@@ -1267,10 +1755,34 @@
                     text: `These are what make notes sound like guitar rather than a scale exercise.`,
                   },
                 ],
-                quick: `the two classic bends in box 1. G string fret 7, bent up a whole step. First play fret 9 to hear the target pitch, then bend until you match it. B string fret 8, bent up to the pitch of fret 10. Then add vibrato to a held note on fret 5 of the high E.`,
-                long: `take the same 3 notes and play them five ways: bent, slid into, hammered on, with vibrato, and short and choppy. Then jam using a different technique in each phrase.`,
-                after: [],
-                doneWhen: `your whole-step bends are in tune (check them against the fretted note), and every phrase uses at least one of these techniques.`,
+                quick: {
+                  setup: '',
+                  steps: [
+                    `Play fret 9 on the G string to hear the target pitch.`,
+                    `Bend fret 7 on the G string up a whole step, until you match it.`,
+                    `Bend fret 8 on the B string up to the pitch of fret 10.`,
+                    `Add vibrato to a held note on fret 5 of the high E.`,
+                  ],
+                },
+                long: {
+                  setup: '',
+                  steps: [
+                    `Pick 3 notes.`,
+                    `Play the same 3 notes five ways: bent, slid into, hammered on, with vibrato, and short and choppy.`,
+                    `Jam using a different technique in each phrase.`,
+                  ],
+                },
+                tips: [],
+                doneWhen: [
+                  {
+                    slug: 'bends-in-tune',
+                    text: `Your whole-step bends are in tune (check them against the fretted note)`,
+                  },
+                  {
+                    slug: 'technique-every-phrase',
+                    text: `Every phrase uses at least one of these techniques`,
+                  },
+                ],
               },
               {
                 slug: 'phrasing',
@@ -1282,20 +1794,61 @@
                     text: `Good solos sound like talking: short phrases, repeats, questions and answers, and space.`,
                   },
                 ],
-                quick: `a 2-note jam over a backing track, using only A and G. Make it interesting with rhythm alone for 3 minutes. Then allow yourself 3 notes.`,
-                long: `questions and answers. Play a phrase that ends off the root (the question), then one that ends on A (the answer). Then steal a lick: learn one short phrase from a solo you love and play it three different ways.`,
-                after: [],
-                doneWhen: `a 2-minute recording of you improvising sounds like phrases, not a scale exercise.`,
+                quick: {
+                  setup: `Backing track`,
+                  steps: [
+                    `Jam over the backing track for 3 minutes using only A and G. Make it interesting with rhythm alone.`,
+                    `Keep jamming, allowing yourself 3 notes.`,
+                  ],
+                },
+                long: {
+                  setup: '',
+                  steps: [
+                    `Play a phrase that ends off the root (the question).`,
+                    `Play one that ends on A (the answer).`,
+                    `Learn one short phrase from a solo you love.`,
+                    `Play it three different ways.`,
+                  ],
+                },
+                tips: [],
+                doneWhen: [
+                  {
+                    slug: 'sounds-like-phrases',
+                    text: `A 2-minute recording of you improvising sounds like phrases, not a scale exercise`,
+                  },
+                ],
               },
               {
                 slug: 'pentatonic-box-2',
                 title: `Box 2 and moving around`,
                 needs: ['octaves'],
                 intro: [],
-                quick: `learn box 2 of A minor pentatonic (the next shape up, starting around fret 7–8). Play box 1 into box 2 by sliding on the G or B string.`,
-                long: `jam over the same backing track, starting phrases in one box and ending them in the other. Use slides to move between boxes.`,
-                after: [],
-                doneWhen: `you can move freely between both boxes mid-phrase without stopping to think.`,
+                quick: {
+                  setup: '',
+                  steps: [
+                    `Learn box 2 of A minor pentatonic (the next shape up, starting around fret 7–8).`,
+                    `Play box 1 into box 2 by sliding on the G or B string.`,
+                  ],
+                },
+                long: {
+                  setup: `A minor rock backing track`,
+                  steps: [
+                    `Jam over the backing track, starting phrases in one box and ending them in the other.`,
+                  ],
+                },
+                tips: [
+                  {
+                    type: 'list',
+                    ordered: false,
+                    items: [{ text: `Use slides to move between boxes.` }],
+                  },
+                ],
+                doneWhen: [
+                  {
+                    slug: 'move-between-boxes',
+                    text: `You can move freely between both boxes mid-phrase without stopping to think`,
+                  },
+                ],
               },
               {
                 slug: 'major-keys',
@@ -1307,10 +1860,27 @@
                     text: `Most indie and pop-rock is in a major key, and the minor pentatonic over it gives a gritty, bluesy sound. That's sometimes what you want, but it often clashes. The fix: use the minor pentatonic of the key's vi chord. That's the same box shape, 3 frets lower than the key's root. For G major, play E minor pentatonic (box 1 at fret 12, or open).`,
                   },
                 ],
-                quick: `a G major backing track, with E minor pentatonic at fret 12. End phrases on G (low E fret 15, G string fret 12, or high E fret 15).`,
-                long: `over G–D–Em–C, end phrases on G and then on E, and hear the difference: home vs. sad. Then switch between a minor-key and a major-key backing track.`,
-                after: [],
-                doneWhen: `given any backing track, you can find its key and pick the right pentatonic in under 30 seconds.`,
+                quick: {
+                  setup: `G major backing track`,
+                  steps: [
+                    `Play E minor pentatonic at fret 12 over the backing track, ending phrases on G (low E fret 15, G string fret 12, or high E fret 15).`,
+                  ],
+                },
+                long: {
+                  setup: `Minor-key and major-key backing tracks`,
+                  steps: [
+                    `Play over G–D–Em–C, ending phrases on G.`,
+                    `Play over it again, ending phrases on E, and hear the difference: home vs. sad.`,
+                    `Switch between a minor-key and a major-key backing track.`,
+                  ],
+                },
+                tips: [],
+                doneWhen: [
+                  {
+                    slug: 'right-pentatonic-in-30-seconds',
+                    text: `Given any backing track, you can find its key and pick the right pentatonic in under 30 seconds`,
+                  },
+                ],
               },
               {
                 slug: 'playing-the-changes',
@@ -1322,10 +1892,28 @@
                     text: `This is where solos start following the chords instead of just staying in the key.`,
                   },
                 ],
-                quick: `a slow Am–F–C–G loop. On beat 1 of each chord, play a note from that chord: A, C or E over Am; F, A or C over F; C, E or G over C; G, B or D over G.`,
-                long: `the Quick drill, then connect those target notes with pentatonic runs. Then use the full natural minor scale. Notice that F, one of the notes the pentatonic dropped, is now the perfect note over the F chord.`,
-                after: [],
-                doneWhen: `your solo over a 4-chord loop audibly follows the chords, so someone listening could tell when the chords change.`,
+                quick: {
+                  setup: `Slow Am–F–C–G loop`,
+                  steps: [
+                    `Play a note from each chord on its first beat: A, C or E over Am; F, A or C over F; C, E or G over C; G, B or D over G.`,
+                  ],
+                },
+                long: {
+                  setup: `Slow Am–F–C–G loop`,
+                  steps: [
+                    `Play a note from each chord on its first beat: A, C or E over Am; F, A or C over F; C, E or G over C; G, B or D over G.`,
+                    `Connect those target notes with pentatonic runs.`,
+                    `Switch to the full natural minor scale.`,
+                    `Notice that F, one of the notes the pentatonic dropped, is now the perfect note over the F chord.`,
+                  ],
+                },
+                tips: [],
+                doneWhen: [
+                  {
+                    slug: 'follows-the-chords',
+                    text: `Your solo over a 4-chord loop audibly follows the chords, so someone listening could tell when the chords change`,
+                  },
+                ],
               },
             ],
           },
@@ -1665,8 +2253,17 @@
         if (level.intro.length > 0) {
           nodes.push(element('div', { className: 'prose' }, renderBlocks(level.intro)));
         }
+        nodes.push(sessionSection(level));
+        // Tips apply to both sessions, so they sit outside the toggle.
+        if (level.tips.length > 0) {
+          nodes.push(
+            element('section', { className: 'stack' }, [
+              element('h2', { className: 'label-section', textContent: 'Tips' }),
+              element('div', { className: 'prose' }, renderBlocks(level.tips)),
+            ]),
+          );
+        }
         nodes.push(
-          sessionSection(level),
           doneWhenSection(level, readCachedTicks().has(slug)),
           levelNavigation(stream, level),
         );
@@ -1674,14 +2271,10 @@
         return { title: level.title, nodes };
       }
 
-      // The Quick / Long toggle and the chosen session's text. Toggling
-      // swaps the text in place, so the URL and scroll position stay put.
+      // The Quick / Long toggle and the chosen session. Toggling swaps the
+      // session in place, so the URL and scroll position stay put.
       function sessionSection(level) {
-        const sessionText = element(
-          'p',
-          { className: 'capitalise-first-letter' },
-          renderText(level[sessionLength]),
-        );
+        const session = element('div', { className: 'prose' }, sessionNodes(level[sessionLength]));
 
         const options = SESSION_LENGTHS.map(({ value, label }) =>
           element('label', { className: 'segmented-control-option' }, [
@@ -1693,7 +2286,7 @@
               className: 'sr-only',
               onchange: () => {
                 sessionLength = value;
-                sessionText.replaceChildren(...renderText(level[sessionLength]));
+                session.replaceChildren(...sessionNodes(level[sessionLength]));
               },
             }),
             label,
@@ -1705,15 +2298,36 @@
             element('legend', { className: 'sr-only', textContent: 'Session length' }),
             ...options,
           ]),
-          element('div', { className: 'prose' }, [sessionText, ...renderBlocks(level.after)]),
+          session,
         ]);
+      }
+
+      // A session's Set up, skipped when there's nothing to set up, then
+      // its numbered steps.
+      function sessionNodes(session) {
+        const steps = element(
+          'ol',
+          { className: 'session-steps' },
+          session.steps.map((step) => element('li', {}, renderText(step))),
+        );
+        if (!session.setup) return [steps];
+
+        const setup = element('div', { className: 'session-setup' }, [
+          element('span', { className: 'label', textContent: 'Set up' }),
+          element('p', {}, renderText(session.setup)),
+        ]);
+        return [setup, steps];
       }
 
       function doneWhenSection(level, isTicked) {
         return element('section', { className: 'stack' }, [
           element('h2', { className: 'label-section', textContent: 'Done when' }),
           element('div', { className: 'prose' }, [
-            element('p', { className: 'capitalise-first-letter' }, renderText(level.doneWhen)),
+            element(
+              'ul',
+              {},
+              level.doneWhen.map((test) => element('li', {}, renderText(test.text))),
+            ),
           ]),
           element('label', { className: 'tick-toggle' }, [
             element('input', {

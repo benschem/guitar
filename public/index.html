@@ -688,6 +688,15 @@
         }
       }
 
+      .save-error {
+        color: var(--danger);
+        font-weight: 600;
+      }
+      /* Takes no space, and adds no gap to its stack, until it has text. */
+      .save-error:empty {
+        display: none;
+      }
+
       .level-navigation {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -2042,11 +2051,43 @@
         }
       }
 
-      // There's no server yet, so the cache is the only copy of a tick.
-      function saveTick(levelSlug, testSlug, isTicked) {
-        const ticks = readCachedTicks().filter((tick) => !tickMatches(tick, levelSlug, testSlug));
+      // The ticks every screen draws from. It starts as the cached copy, so
+      // the first screen draws straight away, and loadTicks replaces it
+      // with the server's.
+      let ticks = readCachedTicks();
+
+      // Records a tick, or its removal, in memory and in the cache.
+      function setTick(levelSlug, testSlug, isTicked) {
+        ticks = ticks.filter((tick) => !tickMatches(tick, levelSlug, testSlug));
         if (isTicked) ticks.push({ level: levelSlug, test: testSlug });
         writeCachedTicks(ticks);
+      }
+
+      // ---- Ticks API ----
+
+      // Replaces the ticks with the server's and redraws the screen.
+      async function loadTicks() {
+        try {
+          const response = await fetch('/api/ticks');
+          if (!response.ok) return;
+          const body = await response.json();
+          if (!Array.isArray(body?.ticks)) return;
+          ticks = body.ticks.filter(isWellFormedTick);
+          writeCachedTicks(ticks);
+          drawCurrentScreen();
+        } catch {
+          // Offline, or opened from disk with no API. The cached ticks stay
+          // on screen.
+        }
+      }
+
+      // Throws when the tick isn't saved, including when the request never
+      // reaches the server.
+      async function saveTick(levelSlug, testSlug, isTicked) {
+        const response = await fetch(`/api/ticks/${levelSlug}/${testSlug}`, {
+          method: isTicked ? 'PUT' : 'DELETE',
+        });
+        if (!response.ok) throw new Error(`Saving a tick failed with status ${response.status}`);
       }
 
       // ---- Text and blocks ----
@@ -2144,7 +2185,6 @@
       // the nodes that fill <main>.
 
       function renderHome() {
-        const ticks = readCachedTicks();
         return {
           title: null,
           nodes: [
@@ -2208,7 +2248,6 @@
         const stream = CONTENT.streams.find((candidate) => candidate.id === streamId);
         if (!stream) return renderNotFound();
 
-        const ticks = readCachedTicks();
         const currentIndex = currentLevelIndex(stream, ticks);
 
         return {
@@ -2330,7 +2369,7 @@
           );
         }
         nodes.push(
-          doneWhenSection(level, readCachedTicks()),
+          doneWhenSection(level, ticks),
           levelNavigation(stream, level),
         );
 
@@ -2386,29 +2425,50 @@
       }
 
       function doneWhenSection(level, ticks) {
+        // Empty and hidden until a tap doesn't save. As an alert, it's read
+        // out by screen readers when it fills.
+        const saveError = element('p', { className: 'save-error', role: 'alert' });
         return element('section', { className: 'stack' }, [
           element('h2', { className: 'label-section', textContent: 'Done when' }),
           element(
             'ul',
             { className: 'stack' },
-            level.doneWhen.map((test) => element('li', {}, [testToggle(level, test, ticks)])),
+            level.doneWhen.map((test) =>
+              element('li', {}, [testToggle(level, test, ticks, saveError)]),
+            ),
           ),
+          saveError,
         ]);
       }
 
       // One test's tick, as a hidden native checkbox labelled with the
       // test's text.
-      function testToggle(level, test, ticks) {
+      function testToggle(level, test, ticks, saveError) {
         return element('label', { className: 'tick-toggle' }, [
           element('input', {
             type: 'checkbox',
             className: 'sr-only',
             checked: isTestTicked(level.slug, test.slug, ticks),
-            onchange: (event) => saveTick(level.slug, test.slug, event.target.checked),
+            onchange: (event) => toggleTick(event.target, level.slug, test.slug, saveError),
           }),
           element('span', { className: 'tick-mark', ariaHidden: 'true' }),
           element('span', {}, renderText(test.text)),
         ]);
+      }
+
+      // The tap shows at once, then saves. If the save fails, the tick goes
+      // back to how it was and the message says so.
+      async function toggleTick(checkbox, levelSlug, testSlug, saveError) {
+        const isTicked = checkbox.checked;
+        setTick(levelSlug, testSlug, isTicked);
+        saveError.textContent = '';
+        try {
+          await saveTick(levelSlug, testSlug, isTicked);
+        } catch {
+          setTick(levelSlug, testSlug, !isTicked);
+          checkbox.checked = !isTicked;
+          saveError.textContent = 'That didn’t save. Try again.';
+        }
       }
 
       // Prev / next within the stream. The first and last levels have no
@@ -2444,7 +2504,6 @@
         const routine = CONTENT.routines.find((candidate) => candidate.id === routineId);
         if (!routine) return renderNotFound();
 
-        const ticks = readCachedTicks();
         return {
           title: routine.title,
           nodes: [
@@ -2562,17 +2621,23 @@
         return renderNotFound();
       }
 
-      function showCurrentScreen() {
+      function drawCurrentScreen() {
         // An empty hash (the bare URL) is Home.
         const path = location.hash.slice(1) || '/';
         const screen = screenForPath(path);
         document.title = screen.title ? `${screen.title} · ${APP_TITLE}` : APP_TITLE;
         document.getElementById('app').replaceChildren(...screen.nodes);
+      }
+
+      // A new screen starts at the top. A redraw for fresh ticks stays put.
+      function showCurrentScreen() {
+        drawCurrentScreen();
         window.scrollTo(0, 0);
       }
 
       window.addEventListener('hashchange', showCurrentScreen);
       showCurrentScreen();
+      loadTicks();
     </script>
   </body>
 </html>
